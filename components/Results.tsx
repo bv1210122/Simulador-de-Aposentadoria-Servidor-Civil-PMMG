@@ -1,7 +1,7 @@
 import React from 'react';
 import { CalculationResult, FormData, RuleCheck } from '../types';
-import { formatDatePTBR } from '../utils/dateHelpers';
-import { Printer, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { formatDatePTBR, parseDate } from '../utils/dateHelpers';
+import { Printer, CheckCircle, XCircle, AlertTriangle, Calculator } from 'lucide-react';
 
 interface Props {
   data: FormData;
@@ -101,6 +101,71 @@ const Results: React.FC<Props> = ({ data, result, onBack }) => {
            <div className="text-sm font-bold text-blue-800 mt-1 bg-blue-100 px-2 py-1 rounded inline-block">
              Data Prevista: {result.toll.retirementDate}
            </div>
+        </div>
+      </div>
+
+      {/* Detalhamento dos Dados e Cálculos */}
+      <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm mb-8 break-inside-avoid">
+        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <Calculator className="w-5 h-5 text-blue-600"/>
+          Detalhamento dos Dados e Cálculos
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+          {/* Column 1: Input Data */}
+          <div>
+            <h4 className="font-semibold text-blue-900 mb-2 border-b border-blue-100 pb-1">Dados Informados</h4>
+            <ul className="space-y-1 text-gray-700">
+              <li><span className="font-medium">Tipo:</span> {data.serverType}</li>
+              <li><span className="font-medium">Gênero:</span> {data.gender}</li>
+              <li><span className="font-medium">Data Nascimento:</span> {formatDatePTBR(parseDate(data.birthDate))}</li>
+              <li><span className="font-medium">Data Admissão:</span> {formatDatePTBR(parseDate(data.admissionDate))}</li>
+              <li><span className="font-medium">Ingresso até 2003:</span> {data.entryPublicServiceBefore2003 ? 'Sim' : 'Não'}</li>
+              <li><span className="font-medium">Ingresso 2004-2020:</span> {data.entryPublicService2003to2020 ? 'Sim' : 'Não'}</li>
+            </ul>
+          </div>
+
+          {/* Column 2: Time Calculation Memory */}
+          <div>
+             <h4 className="font-semibold text-blue-900 mb-2 border-b border-blue-100 pb-1">Memória de Cálculo do Tempo</h4>
+             <ul className="space-y-1 text-gray-700">
+               <li className="flex justify-between"><span>Tempo Bruto (PMMG):</span> <span>{result.grossTimePMMG} dias</span></li>
+               <li className="flex justify-between text-red-600"><span>(-) Descontos:</span> <span>{result.totalDiscount} dias</span></li>
+               <li className="flex justify-between text-blue-600"><span>(+) Averbado:</span> <span>{result.totalAverbed} dias</span></li>
+               <li className="flex justify-between font-bold border-t border-gray-200 pt-1 mt-1">
+                 <span>= Tempo Contribuição:</span> 
+                 <span>{result.contributionTime.totalDays} dias</span>
+               </li>
+               <li className="text-xs text-gray-500 text-right">({result.contributionTime.years} anos, {result.contributionTime.days} dias)</li>
+             </ul>
+          </div>
+
+          {/* Column 3: Toll Calculation Memory */}
+          <div className="md:col-span-2 mt-2">
+             <h4 className="font-semibold text-blue-900 mb-2 border-b border-blue-100 pb-1">Cálculo do Pedágio (EC 104/2020)</h4>
+             <div className="bg-gray-50 p-3 rounded text-gray-700 space-y-2">
+               <div className="flex justify-between">
+                 <span>Tempo Base Exigido (30/35 anos):</span>
+                 <span className="font-medium">{result.toll.required} dias</span>
+               </div>
+               <div className="flex justify-between">
+                 <span>Tempo Cumprido em 15/09/2020:</span>
+                 <span className="font-medium">{result.toll.accumulatedOnBaseDate} dias</span>
+               </div>
+               <div className="flex justify-between text-red-700">
+                 <span>Déficit em 15/09/2020:</span>
+                 <span className="font-medium">{result.toll.deficit} dias</span>
+               </div>
+               <div className="flex justify-between text-blue-800">
+                 <span>Pedágio (50% do Déficit):</span>
+                 <span className="font-medium">+ {result.toll.tollValue} dias</span>
+               </div>
+               <div className="flex justify-between font-bold border-t border-gray-300 pt-2 mt-1">
+                 <span>Total Necessário na Carreira:</span>
+                 <span>{result.toll.totalToServe} dias</span>
+               </div>
+             </div>
+          </div>
         </div>
       </div>
 
