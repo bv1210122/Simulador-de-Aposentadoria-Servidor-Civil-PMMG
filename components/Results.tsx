@@ -38,7 +38,7 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
 
   const diasParaProximoPonto = 365 - calc.pontuacaoSaldoDias;
   const baseCalculoPontos = calc.idadeDias + calc.tempoContribuicaoTotal;
-  const pedagioTotalDias = calc.saldoFaltanteCorte;
+  const pedagioTotalDias = calc.pedagioApurado;
 
   return (
     <div id="printable-report" className="space-y-6 animate-in fade-in duration-700">
@@ -58,7 +58,7 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
         </div>
       </div>
 
-      {/* Barra de Dados do Servidor (Separada acima dos cards) */}
+      {/* Barra de Dados do Servidor */}
       <div className="bg-slate-50 border border-blue-100 rounded-xl px-6 py-4 flex flex-wrap gap-x-12 gap-y-3 shadow-sm">
         <div className="flex flex-col">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Servidor</span>
@@ -84,7 +84,6 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
       <div className="rounded-2xl border-2 border-blue-400 shadow-md bg-white overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-blue-200">
           
-          {/* Card 1: Tempos Apurados */}
           <div className="p-6 space-y-6">
             <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 uppercase tracking-tight">
               <Calculator className="w-5 h-5 text-slate-400" /> Tempos Apurados
@@ -115,7 +114,6 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
             </div>
           </div>
 
-          {/* Card 2: Pontuação Atual */}
           <div className="p-6 flex flex-col items-center bg-slate-50/30">
             <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 self-start uppercase tracking-tight">
               <Star className="w-5 h-5 text-amber-500" /> Pontuação Atual
@@ -133,10 +131,9 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
             </div>
           </div>
 
-          {/* Card 3: Pedágio Devido (Novo) */}
           <div className="p-6 flex flex-col items-center">
             <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 self-start uppercase tracking-tight">
-              <Timer className="w-5 h-5 text-indigo-500" /> Pedágio (100%)
+              <Timer className="w-5 h-5 text-indigo-500" /> Pedágio (50%)
             </h3>
             
             <div className="flex-grow flex flex-col justify-center items-center py-4">
@@ -162,7 +159,6 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
         </div>
       </div>
 
-      {/* Memória de Cálculo Detalhada */}
       <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
         <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-4">
           <Info className="w-4 h-4 text-blue-500" /> Memória de Cálculo Detalhada
@@ -210,7 +206,7 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
           </div>
 
           <div className="space-y-2 text-xs font-mono bg-slate-50 p-4 rounded-lg border border-slate-100">
-            <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-wider">Cálculo Pedágio (100%)</h4>
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-wider">Cálculo Pedágio (50%)</h4>
             <div className="flex justify-between">
               <span>Meta (Tempo Mínimo):</span>
               <span className="font-bold">{calc.tempoMinimoExigidoDias.toLocaleString()} dias</span>
@@ -224,8 +220,8 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
               <span className="font-bold">{calc.saldoFaltanteCorte.toLocaleString()} dias</span>
             </div>
             <div className="flex justify-between text-blue-600">
-              <span>(+) Pedágio (100%):</span>
-              <span className="font-bold">{calc.saldoFaltanteCorte.toLocaleString()} dias</span>
+              <span>(+) Pedágio (50%):</span>
+              <span className="font-bold">{calc.pedagioApurado.toLocaleString()} dias</span>
             </div>
             <div className="border-t border-slate-300 pt-1 flex justify-between text-xs font-bold text-slate-800">
               <span>Total a Cumprir:</span>
@@ -236,7 +232,6 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
         </div>
       </section>
 
-      {/* Regras Detalhadas */}
       <section className="space-y-4">
         <h3 className="text-sm font-bold flex items-center gap-2 text-slate-700">
           <Target className="w-4 h-4" /> Detalhamento por Regra
@@ -278,7 +273,6 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
         ))}
       </section>
 
-      {/* Mensagem Compulsória */}
       <div className="p-5 bg-amber-50 rounded-xl border border-amber-200">
         <h4 className="text-xs font-bold text-amber-800 mb-2 uppercase tracking-wider">Aviso de Aposentadoria Compulsória</h4>
         <p className="text-[11px] leading-relaxed text-amber-700">

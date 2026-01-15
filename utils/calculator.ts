@@ -56,19 +56,19 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
   const pontuacaoTotalDias = idadeDias + tempoContribuicaoTotal;
   const pontuacaoInteira = Math.floor(pontuacaoTotalDias / 365);
 
-  // Cálculo de Pedágio 100%
+  // Cálculo de Pedágio 50% (EC 104/2020)
   const tempoPMMG_Corte = dInc <= dCorte ? diffInDays(dInc, dCorte) : 0;
   const metaTempoGeral = (isProfessor ? (isHomem ? 30 : 25) : (isHomem ? 35 : 30)) * 365;
   const saldoFaltanteCorte = Math.max(0, metaTempoGeral - tempoPMMG_Corte);
-  const pedagio100 = saldoFaltanteCorte; // 100% de pedágio
+  const pedagio50 = Math.ceil(saldoFaltanteCorte * 0.5);
 
   const calc: CalculosFinais = {
     idadeDias, idadeFormatada, tempoServicoPMMGDias, totalTempoAverbado, totalTempoDescontado,
     tempoEfetivoCivilPMMG: tempoServicoPMMGDias, tempoContribuicaoTotal,
     pontuacao: pontuacaoInteira, pontuacaoSaldoDias: pontuacaoTotalDias % 365,
-    pedagioApurado: Math.ceil(saldoFaltanteCorte * 0.5), // Mantido para exibição do 50% no card de resumo
-    tempoACumprir: metaTempoGeral + pedagio100,
-    dataPrevistaAposentadoria: formatDateBR(addDays(dSim, Math.max(0, (metaTempoGeral + pedagio100) - tempoContribuicaoTotal))),
+    pedagioApurado: pedagio50,
+    tempoACumprir: metaTempoGeral + pedagio50,
+    dataPrevistaAposentadoria: formatDateBR(addDays(dSim, Math.max(0, (metaTempoGeral + pedagio50) - tempoContribuicaoTotal))),
     data75Anos: formatDateBR(new Date(dNasc.getFullYear() + 75, dNasc.getMonth(), dNasc.getDate())),
     tempoEfetivo15092020: tempoPMMG_Corte,
     tempoMinimoExigidoDias: metaTempoGeral,
@@ -81,7 +81,6 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
   const ptG = getPontosGeral(data.sexo!, dSim);
   const ptP = getPontosProfessor(data.sexo!, dSim);
 
-  // Pontos 1 e 2
   regras.push({
     nome: "Regra 1/2 - Transição - Pontos - Geral",
     descricao: "Ingresso até 2020. Pontuação progressiva idade + tempo.",
@@ -92,7 +91,6 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
     ]
   });
 
-  // Pontos 3/4 (Professor)
   if (isProfessor) {
     regras.push({
       nome: "Regra 3/4 - Transição - Pontos - Especial Professor",
@@ -106,63 +104,62 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
     });
   }
 
-  // --- REGRAS DE PEDÁGIO (100%) ---
+  // --- REGRAS DE PEDÁGIO (50%) ---
 
-  // Pedágio 1 - Geral Integral
   regras.push({
     nome: "Regra 1 - Transição - Pedágio - Geral - Integral - Com paridade",
-    descricao: "Ingresso até 31/12/2003. Pedágio de 100%.",
-    cumpre: data.ingressouAte2003 && (idadeDias/365 >= (isHomem ? 60 : 55)) && (tempoContribuicaoTotal/365 >= (isHomem ? 35 : 30)) && (tempoContribuicaoTotal >= metaTempoGeral + pedagio100),
+    descricao: "Ingresso até 31/12/2003. Pedágio de 50%.",
+    cumpre: data.ingressouAte2003 && (idadeDias/365 >= (isHomem ? 60 : 55)) && (tempoContribuicaoTotal/365 >= (isHomem ? 35 : 30)) && (tempoContribuicaoTotal >= metaTempoGeral + pedagio50),
     requisitos: [
       { label: "Ingresso até 2003", esperado: "Sim", atual: data.ingressouAte2003 ? "Sim" : "Não", cumpre: data.ingressouAte2003 },
       { label: "Idade", esperado: isHomem ? "60" : "55", atual: `${Math.floor(idadeDias/365)}`, cumpre: (idadeDias/365 >= (isHomem ? 60 : 55)) },
       { label: "Tempo Contrib.", esperado: isHomem ? "35" : "30", atual: `${Math.floor(tempoContribuicaoTotal/365)}`, cumpre: (tempoContribuicaoTotal/365 >= (isHomem ? 35 : 30)) },
-      { label: "Pedágio (100%)", esperado: `${pedagio100} d`, atual: `${Math.max(0, tempoContribuicaoTotal - metaTempoGeral)} d`, cumpre: (tempoContribuicaoTotal >= metaTempoGeral + pedagio100) }
+      { label: "Pedágio (50%)", esperado: `${pedagio50} d`, atual: `${Math.max(0, tempoContribuicaoTotal - metaTempoGeral)} d`, cumpre: (tempoContribuicaoTotal >= metaTempoGeral + pedagio50) }
     ]
   });
 
-  // Pedágio 2 - Geral Média
   regras.push({
     nome: "Regra 2 - Transição - Pedágio - Geral - Média integral - Sem paridade",
-    descricao: "Ingresso entre 2004 e 2020. Pedágio de 100%.",
-    cumpre: data.ingressouEntre2003e2020 && (idadeDias/365 >= (isHomem ? 60 : 55)) && (tempoContribuicaoTotal/365 >= (isHomem ? 35 : 30)) && (tempoContribuicaoTotal >= metaTempoGeral + pedagio100),
+    descricao: "Ingresso entre 2004 e 2020. Pedágio de 50%.",
+    cumpre: data.ingressouEntre2003e2020 && (idadeDias/365 >= (isHomem ? 60 : 55)) && (tempoContribuicaoTotal/365 >= (isHomem ? 35 : 30)) && (tempoContribuicaoTotal >= metaTempoGeral + pedagio50),
     requisitos: [
       { label: "Ingresso 2004-2020", esperado: "Sim", atual: data.ingressouEntre2003e2020 ? "Sim" : "Não", cumpre: data.ingressouEntre2003e2020 },
       { label: "Idade", esperado: isHomem ? "60" : "55", atual: `${Math.floor(idadeDias/365)}`, cumpre: (idadeDias/365 >= (isHomem ? 60 : 55)) },
-      { label: "Pedágio (100%)", esperado: `${pedagio100} d`, atual: `${Math.max(0, tempoContribuicaoTotal - metaTempoGeral)} d`, cumpre: (tempoContribuicaoTotal >= metaTempoGeral + pedagio100) }
+      { label: "Pedágio (50%)", esperado: `${pedagio50} d`, atual: `${Math.max(0, tempoContribuicaoTotal - metaTempoGeral)} d`, cumpre: (tempoContribuicaoTotal >= metaTempoGeral + pedagio50) }
     ]
   });
 
-  // Pedágio 3 e 4 (Professor)
-  const metaTempoProf = (isHomem ? 30 : 25) * 365;
-  const saldoProfCorte = Math.max(0, metaTempoProf - tempoPMMG_Corte);
-  
-  regras.push({
-    nome: "Regra 3 - Transição - Pedágio - Especial Professor - Integral",
-    descricao: "Exclusivo PEBPM. Ingresso até 2003. Pedágio 100%.",
-    cumpre: isProfessor && data.ingressouAte2003 && (idadeDias/365 >= (isHomem ? 55 : 50)) && (data.tempoRegencia >= (isHomem ? 30 : 25)) && (tempoContribuicaoTotal >= metaTempoProf + saldoProfCorte),
-    requisitos: isProfessor ? [
-      { label: "Ingresso até 2003", esperado: "Sim", atual: data.ingressouAte2003 ? "Sim" : "Não", cumpre: data.ingressouAte2003 },
-      { label: "Idade", esperado: isHomem ? "55" : "50", atual: `${Math.floor(idadeDias/365)}`, cumpre: (idadeDias/365 >= (isHomem ? 55 : 50)) },
-      { label: "Regência", esperado: isHomem ? "30" : "25", atual: `${data.tempoRegencia}`, cumpre: data.tempoRegencia >= (isHomem ? 30 : 25) },
-      { label: "Pedágio (100%)", esperado: `${saldoProfCorte} d`, atual: `${Math.max(0, tempoContribuicaoTotal - metaTempoProf)} d`, cumpre: (tempoContribuicaoTotal >= metaTempoProf + saldoProfCorte) }
-    ] : [{ label: "Aviso", esperado: "Professor", atual: "Não é PEBPM", cumpre: false }]
-  });
+  if (isProfessor) {
+    const metaTempoProf = (isHomem ? 30 : 25) * 365;
+    const saldoProfCorte = Math.max(0, metaTempoProf - tempoPMMG_Corte);
+    const pedagioProf50 = Math.ceil(saldoProfCorte * 0.5);
+    
+    regras.push({
+      nome: "Regra 3 - Transição - Pedágio - Especial Professor - Integral",
+      descricao: "Exclusivo PEBPM. Ingresso até 2003. Pedágio 50%.",
+      cumpre: data.ingressouAte2003 && (idadeDias/365 >= (isHomem ? 55 : 50)) && (data.tempoRegencia >= (isHomem ? 30 : 25)) && (tempoContribuicaoTotal >= metaTempoProf + pedagioProf50),
+      requisitos: [
+        { label: "Ingresso até 2003", esperado: "Sim", atual: data.ingressouAte2003 ? "Sim" : "Não", cumpre: data.ingressouAte2003 },
+        { label: "Idade", esperado: isHomem ? "55" : "50", atual: `${Math.floor(idadeDias/365)}`, cumpre: (idadeDias/365 >= (isHomem ? 55 : 50)) },
+        { label: "Regência", esperado: isHomem ? "30" : "25", atual: `${data.tempoRegencia}`, cumpre: data.tempoRegencia >= (isHomem ? 30 : 25) },
+        { label: "Pedágio (50%)", esperado: `${pedagioProf50} d`, atual: `${Math.max(0, tempoContribuicaoTotal - metaTempoProf)} d`, cumpre: (tempoContribuicaoTotal >= metaTempoProf + pedagioProf50) }
+      ]
+    });
 
-  regras.push({
-    nome: "Regra 4 - Transição - Pedágio - Especial Professor - Média",
-    descricao: "Exclusivo PEBPM. Ingresso 2004-2020. Pedágio 100%.",
-    cumpre: isProfessor && data.ingressouEntre2003e2020 && (idadeDias/365 >= (isHomem ? 55 : 50)) && (data.tempoRegencia >= (isHomem ? 30 : 25)) && (tempoContribuicaoTotal >= metaTempoProf + saldoProfCorte),
-    requisitos: isProfessor ? [
-      { label: "Ingresso 2004-2020", esperado: "Sim", atual: data.ingressouEntre2003e2020 ? "Sim" : "Não", cumpre: data.ingressouEntre2003e2020 },
-      { label: "Idade", esperado: isHomem ? "55" : "50", atual: `${Math.floor(idadeDias/365)}`, cumpre: (idadeDias/365 >= (isHomem ? 55 : 50)) },
-      { label: "Pedágio (100%)", esperado: `${saldoProfCorte} d`, atual: `${Math.max(0, tempoContribuicaoTotal - metaTempoProf)} d`, cumpre: (tempoContribuicaoTotal >= metaTempoProf + saldoProfCorte) }
-    ] : [{ label: "Aviso", esperado: "Professor", atual: "Não é PEBPM", cumpre: false }]
-  });
+    regras.push({
+      nome: "Regra 4 - Transição - Pedágio - Especial Professor - Média",
+      descricao: "Exclusivo PEBPM. Ingresso 2004-2020. Pedágio 50%.",
+      cumpre: data.ingressouEntre2003e2020 && (idadeDias/365 >= (isHomem ? 55 : 50)) && (data.tempoRegencia >= (isHomem ? 30 : 25)) && (tempoContribuicaoTotal >= metaTempoProf + pedagioProf50),
+      requisitos: [
+        { label: "Ingresso 2004-2020", esperado: "Sim", atual: data.ingressouEntre2003e2020 ? "Sim" : "Não", cumpre: data.ingressouEntre2003e2020 },
+        { label: "Idade", esperado: isHomem ? "55" : "50", atual: `${Math.floor(idadeDias/365)}`, cumpre: (idadeDias/365 >= (isHomem ? 55 : 50)) },
+        { label: "Pedágio (50%)", esperado: `${pedagioProf50} d`, atual: `${Math.max(0, tempoContribuicaoTotal - metaTempoProf)} d`, cumpre: (tempoContribuicaoTotal >= metaTempoProf + pedagioProf50) }
+      ]
+    });
+  }
 
   // --- REGRAS PERMANENTES ---
 
-  // Permanente 1 - Geral
   regras.push({
     nome: "Regra Permanente 1 - Geral",
     descricao: "Idade 65/62 anos e 25 anos de contribuição mínima.",
@@ -173,18 +170,18 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
     ]
   });
 
-  // Permanente 2 - Professor
-  regras.push({
-    nome: "Regra Permanente 2 - Especial Professor",
-    descricao: "Exclusivo PEBPM. Idade 60/57 anos e 25 anos de regência.",
-    cumpre: isProfessor && (idadeDias/365 >= (isHomem ? 60 : 57)) && (data.tempoRegencia >= 25),
-    requisitos: isProfessor ? [
-      { label: "Idade", esperado: isHomem ? "60" : "57", atual: `${Math.floor(idadeDias/365)}`, cumpre: (idadeDias/365 >= (isHomem ? 60 : 57)) },
-      { label: "Regência", esperado: "25", atual: `${data.tempoRegencia}`, cumpre: data.tempoRegencia >= 25 }
-    ] : [{ label: "Aviso", esperado: "Professor", atual: "Não é PEBPM", cumpre: false }]
-  });
+  if (isProfessor) {
+    regras.push({
+      nome: "Regra Permanente 2 - Especial Professor",
+      descricao: "Exclusivo PEBPM. Idade 60/57 anos e 25 anos de regência.",
+      cumpre: (idadeDias/365 >= (isHomem ? 60 : 57)) && (data.tempoRegencia >= 25),
+      requisitos: [
+        { label: "Idade", esperado: isHomem ? "60" : "57", atual: `${Math.floor(idadeDias/365)}`, cumpre: (idadeDias/365 >= (isHomem ? 60 : 57)) },
+        { label: "Regência", esperado: "25", atual: `${data.tempoRegencia}`, cumpre: data.tempoRegencia >= 25 }
+      ]
+    });
+  }
 
-  // Permanente 3 - Compulsória
   const dComp = new Date(dNasc.getFullYear() + 75, dNasc.getMonth(), dNasc.getDate());
   regras.push({
     nome: "Regra Permanente 3 - Compulsória",
