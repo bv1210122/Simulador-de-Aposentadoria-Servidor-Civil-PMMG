@@ -171,9 +171,18 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
               <span className="text-slate-500">Idade na Simulação:</span>
               <span className="font-bold text-slate-700">{calc.idadeFormatada}</span>
             </div>
+            <div className="space-y-3 flex-grow text-xs">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500">Idade na Simulação em dias:</span>
+              <span className="font-bold text-slate-700">{calc.idadeDias}</span>
+            </div>
             <div className="flex justify-between items-center">
               <span className="text-slate-500">Tempo Efetivo PMMG:</span>
               <span className="font-bold text-slate-700">{formatDaysToYMD(calc.tempoServicoPMMGDias)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500">Tempo Efetivo PMMG em dias:</span>
+              <span className="font-bold text-slate-700">{calc.tempoServicoPMMGDias}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-slate-500">Total Averbações:</span>
