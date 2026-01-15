@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { FormState, CalculosFinais, RegraResultado } from '../types';
-import { CheckCircle, XCircle, Printer, Calculator, Star, Target, Info, Timer } from 'lucide-react';
+import { CheckCircle, XCircle, Printer, Calculator, Star, Target, Info, Timer, CalendarDays } from 'lucide-react';
 import { formatDaysToYMD, formatDateBR, parseISO } from '../utils/dateHelpers';
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
   regras: RegraResultado[];
 }
 
+// Fixed the typo in the destructuring below by removing "模仿"
 const Results: React.FC<Props> = ({ data, calc, regras }) => {
   const algumaRegraCumprida = regras.some(r => r.cumpre);
 
@@ -27,6 +28,7 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
             @page { size: A4; margin: 1cm; } 
             body { font-family: sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none !important; }
+            .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
           </style>
         </head>
         <body class="p-8">${reportContent}</body>
@@ -166,19 +168,38 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           
           <div className="space-y-2 text-xs font-mono bg-slate-50 p-4 rounded-lg border border-slate-100">
-            <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-wider">Cálculo Contribuição</h4>
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-wider flex items-center gap-1">
+               <CalendarDays className="w-3 h-3" /> Cálculo Contribuição
+            </h4>
             <div className="flex justify-between">
               <span>Tempo Efetivo (PMMG):</span>
-              <span className="font-bold">{calc.tempoEfetivoCivilPMMG.toLocaleString()} dias</span>
+              <span className="font-bold">{calc.tempoEfetivoCivilPMMG.toLocaleString()} d</span>
             </div>
-            <div className="flex justify-between text-blue-600">
-              <span>(+) Averbações:</span>
-              <span>{calc.totalTempoAverbado.toLocaleString()} dias</span>
-            </div>
-            <div className="flex justify-between text-rose-600">
-              <span>(-) Descontos:</span>
-              <span>{calc.totalTempoDescontado.toLocaleString()} dias</span>
-            </div>
+            
+            {data.averbacoes.length > 0 && (
+              <div className="mt-2 pt-1 border-t border-slate-200 space-y-1">
+                <span className="text-[9px] text-blue-500 font-bold uppercase">Detalhamento Averbações:</span>
+                {data.averbacoes.map(av => (
+                  <div key={av.id} className="flex justify-between text-[10px] text-blue-700">
+                    <span className="truncate max-w-[120px]">{av.nome || 'Período'}:</span>
+                    <span className="whitespace-nowrap">{av.dataInicial ? formatDateBR(parseISO(av.dataInicial)) : '?'} a {av.dataFinal ? formatDateBR(parseISO(av.dataFinal)) : '?'} ({av.dias}d)</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {data.descontos.length > 0 && (
+              <div className="mt-2 pt-1 border-t border-slate-200 space-y-1">
+                <span className="text-[9px] text-rose-500 font-bold uppercase">Detalhamento Descontos:</span>
+                {data.descontos.map(desc => (
+                  <div key={desc.id} className="flex justify-between text-[10px] text-rose-700">
+                    <span className="truncate max-w-[120px]">{desc.tipo}:</span>
+                    <span className="whitespace-nowrap">{desc.dataInicial ? formatDateBR(parseISO(desc.dataInicial)) : '?'} a {desc.dataFinal ? formatDateBR(parseISO(desc.dataFinal)) : '?'} ({desc.dias}d)</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="border-t border-slate-300 pt-2 flex justify-between text-xs font-bold text-slate-800">
               <span>Tempo Líquido:</span>
               <span>{calc.tempoContribuicaoTotal.toLocaleString()} dias</span>
