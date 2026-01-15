@@ -22,13 +22,14 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
   const dInc = parseISO(data.dataInclusaoPMMG);
   const dCorte = new Date('2020-09-15T00:00:00');
 
-  // 1. Cálculos Básicos de Idade e Tempo Atual
-  const { totalDias: idadeDias, formatada: idadeFormatada } = calculateAgeDaysSpecific(dNasc, dSim);
+  // APLICAÇÃO DA LÓGICA SOLICITADA:
+  // Tempo de Serviço PMMG = Data Simulação - Data Inclusão (Convertido em dias inclusive)
   const tempoServicoPMMGDias = diffInDays(dInc, dSim);
+
+  const { totalDias: idadeDias, formatada: idadeFormatada } = calculateAgeDaysSpecific(dNasc, dSim);
   const totalTempoAverbado = data.averbacoes.reduce((acc, av) => acc + av.dias, 0);
   const totalTempoDescontado = data.descontos.reduce((acc, desc) => acc + desc.dias, 0);
   
-  // Tempo de contribuição total na data da simulação
   const tempoEfetivoCivilPMMG = tempoServicoPMMGDias - totalTempoDescontado;
   const tempoContribuicaoTotal = tempoEfetivoCivilPMMG + totalTempoAverbado;
 
@@ -36,21 +37,13 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
   const isHomem = data.sexo === 'Masculino';
   const redutorProfAnos = isProfessor ? 5 : 0;
 
-  // 2. Cálculo da Situação em 15/09/2020 (Data da Reforma Estadual)
-  // Essencial para determinar o Saldo Faltante e o consequente Pedágio
+  // Cálculo rigoroso da situação no corte (15/09/2020)
   const tempoPMMG_Corte = dInc <= dCorte ? diffInDays(dInc, dCorte) : 0;
-  
-  const averbacoesCorte = data.averbacoes.reduce((acc, av) => {
-    return acc + getDaysUntilLimit(av.dataInicial, av.dataFinal, dCorte);
-  }, 0);
-  
-  const descontosCorte = data.descontos.reduce((acc, desc) => {
-    return acc + getDaysUntilLimit(desc.dataInicial, desc.dataFinal, dCorte);
-  }, 0);
+  const averbacoesCorte = data.averbacoes.reduce((acc, av) => acc + getDaysUntilLimit(av.dataInicial, av.dataFinal, dCorte), 0);
+  const descontosCorte = data.descontos.reduce((acc, desc) => acc + getDaysUntilLimit(desc.dataInicial, desc.dataFinal, dCorte), 0);
 
   const tempoEfetivo15092020 = Math.max(0, tempoPMMG_Corte + averbacoesCorte - descontosCorte);
 
-  // 3. Definição dos Requisitos Mínimos (Regra PMMG: Anos * 365)
   let tempoMinimoExigidoDias = 0;
   if (isProfessor) {
     tempoMinimoExigidoDias = (isHomem ? 30 : 25) * 365;
@@ -58,29 +51,19 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
     tempoMinimoExigidoDias = (isHomem ? 35 : 30) * 365;
   }
 
-  // 4. Cálculos de Pedágio
   const saldoFaltanteCorte = Math.max(0, tempoMinimoExigidoDias - tempoEfetivo15092020);
-  
-  // Pedágio 50% (Transição Art. 134-A)
   const pedagio50 = Math.ceil(saldoFaltanteCorte * 0.5);
   const tempoACumprir50 = tempoMinimoExigidoDias + pedagio50;
+  const tempoACumprir100 = tempoMinimoExigidoDias + saldoFaltanteCorte;
 
-  // Pedágio 100% (Transição Art. 134-B)
-  const pedagio100 = saldoFaltanteCorte;
-  const tempoACumprir100 = tempoMinimoExigidoDias + pedagio100;
-
-  // 5. Projeção de Data
-  // A data é projetada somando o tempo total de contribuição necessário (Mínimo + Pedágio)
-  // à data de inclusão, ajustando pelos descontos e averbações totais.
+  // Projeção baseada no tempo líquido a cumprir descontando averbações e somando descontos
   const diasParaAdicionar = tempoACumprir50 + totalTempoDescontado - totalTempoAverbado;
   const dataPrevistaAposentadoria = formatDateBR(addDays(dInc, diasParaAdicionar - 1));
 
-  // 6. Pontuação (Idade em Dias + Tempo em Dias) / 365
   const pontuacaoTotalDias = idadeDias + tempoContribuicaoTotal;
   const pontuacaoAnos = Math.floor(pontuacaoTotalDias / 365);
   const pontuacaoSaldoDias = pontuacaoTotalDias % 365;
 
-  // Limite de 75 anos
   const data75Anos = formatDateBR(new Date(dNasc.getFullYear() + 75, dNasc.getMonth(), dNasc.getDate()));
 
   const calc: CalculosFinais = {
@@ -102,10 +85,11 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
     saldoFaltanteCorte
   };
 
-  // 7. Avaliação das Regras de Transição
   const regras: RegraResultado[] = [];
 
-  // REGRA 1: PONTOS
+  // Implementação das Regras de Transição (Pontos, 50%, 100% e Permanente)
+  // ... (Manteve as mesmas lógicas de condições das regras conforme EC 104/2020)
+  
   const getPontosExigidos = (sexo: string, dataRef: Date) => {
     const ano = dataRef.getFullYear();
     if (sexo === 'Masculino') {
@@ -146,7 +130,6 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
     ]
   });
 
-  // REGRA 2: PEDÁGIO 50%
   const idadeMinimaPedagio50 = (isHomem ? 60 : 55) - redutorProfAnos;
   regras.push({
     nome: "Regra 2 - Transição - Pedágio 50%",
@@ -165,7 +148,6 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
     ]
   });
 
-  // REGRA 3: PEDÁGIO 100%
   const idadeMinimaPedagio100 = (isHomem ? 60 : 57) - redutorProfAnos;
   regras.push({
     nome: "Regra 3 - Transição - Pedágio 100%",
@@ -182,7 +164,6 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
     ]
   });
 
-  // REGRA PERMANENTE
   const idadePermanente = (isHomem ? 65 : 62) - redutorProfAnos;
   const tempoPermanenteDias = 25 * 365;
   regras.push({
@@ -200,5 +181,5 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
     ]
   });
 
-  return { calc,  regras };
+  return { calc, regras };
 };
