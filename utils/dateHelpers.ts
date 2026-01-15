@@ -2,8 +2,12 @@
 export const parseISO = (dateStr: string) => new Date(dateStr + 'T00:00:00');
 
 export const diffInDays = (d1: Date, d2: Date): number => {
-  const diffTime = Math.abs(d2.getTime() - d1.getTime());
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Incluindo o próprio dia conforme regra
+  // Converte para UTC para evitar problemas com fuso horário e horário de verão
+  const utc1 = Date.UTC(d1.getFullYear(), d1.getMonth(), d1.getDate());
+  const utc2 = Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate());
+  
+  const diffTime = Math.abs(utc2 - utc1);
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // Contagem inclusiva conforme regra
 };
 
 export const addDays = (date: Date, days: number): Date => {
@@ -16,20 +20,36 @@ export const formatDateBR = (date: Date): string => {
   return date.toLocaleDateString('pt-BR');
 };
 
+/**
+ * Calcula a idade em dias conforme a regra específica solicitada:
+ * 1. Identifica os anos completos do nascimento até o último aniversário antes da simulação.
+ * 2. Calcula os dias do dia seguinte ao aniversário até a data da simulação (inclusivo).
+ * 3. Total em dias = (Anos Completos * 365) + Dias Extras.
+ */
 export const calculateAgeDaysSpecific = (nascimento: Date, simulacao: Date): { totalDias: number; formatada: string } => {
-  const anoSimulacao = simulacao.getFullYear();
-  let dataUltimoAniversario = new Date(anoSimulacao, nascimento.getMonth(), nascimento.getDate());
+  const diaNasc = nascimento.getDate();
+  const mesNasc = nascimento.getMonth();
+  
+  let anoAniversario = simulacao.getFullYear();
+  let dataUltimoAniversario = new Date(anoAniversario, mesNasc, diaNasc);
 
+  // Se o aniversário deste ano ainda não aconteceu, retrocede um ano
   if (dataUltimoAniversario > simulacao) {
-    dataUltimoAniversario = new Date(anoSimulacao - 1, nascimento.getMonth(), nascimento.getDate());
+    anoAniversario--;
+    dataUltimoAniversario = new Date(anoAniversario, mesNasc, diaNasc);
   }
 
-  const anosCompletos = dataUltimoAniversario.getFullYear() - nascimento.getFullYear();
-  const diasAposAniversario = diffInDays(addDays(dataUltimoAniversario, 1), simulacao);
+  const anosCompletos = anoAniversario - nascimento.getFullYear();
   
-  // Se a simulação for exatamente no dia do aniversário, o diffInDays acima pode retornar 1 indevidamente ou algo assim
-  // Ajuste para o dia do aniversário:
-  const diasExtras = dataUltimoAniversario.getTime() === simulacao.getTime() ? 0 : diasAposAniversario;
+  let diasExtras = 0;
+  if (dataUltimoAniversario.getTime() < simulacao.getTime()) {
+    // Regra: contar a partir do dia posterior ao último aniversário
+    const diaPosteriorAoAniversario = addDays(dataUltimoAniversario, 1);
+    diasExtras = diffInDays(diaPosteriorAoAniversario, simulacao);
+  } else if (dataUltimoAniversario.getTime() === simulacao.getTime()) {
+    // Se a simulação for exatamente no dia do aniversário, os dias extras são zero
+    diasExtras = 0;
+  }
 
   const totalDias = (anosCompletos * 365) + diasExtras;
   
