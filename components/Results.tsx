@@ -196,6 +196,10 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
               <span className="font-bold text-slate-800">Tempo Contribuição Total:</span>
               <span className="font-bold text-slate-900">{formatDaysToYMD(calc.tempoContribuicaoTotal)}</span>
             </div>
+            <div className="flex justify-between items-center pt-2 border-t border-slate-50">
+              <span className="font-bold text-slate-800">Tempo Contribuição Total em dias:</span>
+              <span className="font-bold text-slate-900">{calc.tempoContribuicaoTotal}</span>
+            </div>
           </div>
         </div>
 
