@@ -1,63 +1,40 @@
 
 import { FormState, CalculosFinais, RegraResultado } from '../types';
-import { parseISO, diffInDays, calculateAgeDaysSpecific, formatDaysToYMD, addDays, formatDateBR } from './dateHelpers';
+import { parseISO, diffInDays, calculateAgeDaysSpecific, addDays, formatDateBR } from './dateHelpers';
 
-const getPontosRegraGeral = (sexo: string, dataSim: Date): { pontos: number; label: string } => {
+/**
+ * Tabelas de Pontuação Progressiva
+ */
+const getPontosGeral = (sexo: string, dataSim: Date): { pontos: number; label: string } => {
   const t = dataSim.getTime();
   if (sexo === 'Masculino') {
-    if (t < parseISO('2022-04-01').getTime()) return { pontos: 97, label: "97 pontos (até 31/03/2022)" };
-    if (t < parseISO('2023-07-01').getTime()) return { pontos: 98, label: "98 pontos (a contar de 01/04/2022)" };
-    if (t < parseISO('2024-10-01').getTime()) return { pontos: 99, label: "99 pontos (a contar de 01/07/2023)" };
-    if (t < parseISO('2026-01-01').getTime()) return { pontos: 100, label: "100 pontos (a contar de 01/10/2024)" };
-    if (t < parseISO('2027-04-01').getTime()) return { pontos: 101, label: "101 pontos (a contar de 01/01/2026)" };
-    if (t < parseISO('2028-07-01').getTime()) return { pontos: 102, label: "102 pontos (a contar de 01/04/2027)" };
-    if (t < parseISO('2029-10-01').getTime()) return { pontos: 103, label: "103 pontos (a contar de 01/07/2028)" };
-    if (t < parseISO('2031-01-01').getTime()) return { pontos: 104, label: "104 pontos (a contar de 01/10/2029)" };
-    return { pontos: 105, label: "105 pontos (a contar de 01/01/2031)" };
+    if (t < parseISO('2022-04-01').getTime()) return { pontos: 97, label: "97 pts (até 31/03/22)" };
+    if (t < parseISO('2023-07-01').getTime()) return { pontos: 98, label: "98 pts (a partir de 01/04/22)" };
+    if (t < parseISO('2024-10-01').getTime()) return { pontos: 99, label: "99 pts (a partir de 01/07/23)" };
+    return { pontos: 100, label: "100 pts (a partir de 01/10/24)" };
   } else {
-    if (t < parseISO('2022-04-01').getTime()) return { pontos: 86, label: "86 pontos (até 31/03/2022)" };
-    if (t < parseISO('2023-07-01').getTime()) return { pontos: 87, label: "87 pontos (a contar de 01/04/2022)" };
-    if (t < parseISO('2024-10-01').getTime()) return { pontos: 88, label: "88 pontos (a contar de 01/07/2023)" };
-    if (t < parseISO('2026-01-01').getTime()) return { pontos: 89, label: "89 pontos (a contar de 01/10/2024)" };
-    if (t < parseISO('2027-04-01').getTime()) return { pontos: 90, label: "90 pontos (a contar de 01/01/2026)" };
-    if (t < parseISO('2028-07-01').getTime()) return { pontos: 91, label: "91 pontos (a contar de 01/04/2027)" };
-    if (t < parseISO('2029-10-01').getTime()) return { pontos: 92, label: "92 pontos (a contar de 01/07/2028)" };
-    if (t < parseISO('2031-01-01').getTime()) return { pontos: 93, label: "93 pontos (a contar de 01/10/2029)" };
-    if (t < parseISO('2032-04-01').getTime()) return { pontos: 94, label: "94 pontos (a contar de 01/01/2031)" };
-    if (t < parseISO('2033-07-01').getTime()) return { pontos: 95, label: "95 pontos (a contar de 01/04/2032)" };
-    if (t < parseISO('2034-10-01').getTime()) return { pontos: 96, label: "96 pontos (a contar de 01/07/2033)" };
-    if (t < parseISO('2036-01-01').getTime()) return { pontos: 97, label: "97 pontos (a contar de 01/10/2034)" };
-    if (t < parseISO('2037-04-01').getTime()) return { pontos: 98, label: "98 pontos (a contar de 01/01/2036)" };
-    if (t < parseISO('2038-07-01').getTime()) return { pontos: 99, label: "99 pontos (a contar de 01/04/2037)" };
-    return { pontos: 100, label: "100 pontos (a contar de 01/07/2038)" };
+    if (t < parseISO('2022-04-01').getTime()) return { pontos: 86, label: "86 pts (até 31/03/22)" };
+    if (t < parseISO('2023-07-01').getTime()) return { pontos: 87, label: "87 pts (a partir de 01/04/22)" };
+    if (t < parseISO('2024-10-01').getTime()) return { pontos: 88, label: "88 pts (a partir de 01/07/23)" };
+    return { pontos: 89, label: "89 pts (a partir de 01/10/24)" };
   }
 };
 
 const getPontosProfessor = (sexo: string, dataSim: Date): { pontos: number; label: string } => {
   const t = dataSim.getTime();
+  const anos = [2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032];
+  const ptsM = [92, 93, 94, 95, 96, 97, 98, 99, 100, 100, 100, 100];
+  const ptsF = [81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92];
+
+  const currentYear = dataSim.getFullYear();
+  const idx = Math.max(0, currentYear - 2021);
+  
   if (sexo === 'Masculino') {
-    if (t < parseISO('2022-01-01').getTime()) return { pontos: 92, label: "92 pontos (até 31/12/2021)" };
-    if (t < parseISO('2023-01-01').getTime()) return { pontos: 93, label: "93 pontos (a contar de 01/01/2022)" };
-    if (t < parseISO('2024-01-01').getTime()) return { pontos: 94, label: "94 pontos (a contar de 01/01/2023)" };
-    if (t < parseISO('2025-01-01').getTime()) return { pontos: 95, label: "95 pontos (a contar de 01/01/2024)" };
-    if (t < parseISO('2026-01-01').getTime()) return { pontos: 96, label: "96 pontos (a contar de 01/01/2025)" };
-    if (t < parseISO('2027-01-01').getTime()) return { pontos: 97, label: "97 pontos (a contar de 01/01/2026)" };
-    if (t < parseISO('2028-01-01').getTime()) return { pontos: 98, label: "98 pontos (a contar de 01/01/2027)" };
-    if (t < parseISO('2029-01-01').getTime()) return { pontos: 99, label: "99 pontos (a contar de 01/01/2028)" };
-    return { pontos: 100, label: "100 pontos (a contar de 01/01/2029)" };
+    const val = ptsM[Math.min(idx, 8)];
+    return { pontos: val, label: `${val} pontos (em ${currentYear})` };
   } else {
-    if (t < parseISO('2022-01-01').getTime()) return { pontos: 81, label: "81 pontos (até 31/12/2021)" };
-    if (t < parseISO('2023-01-01').getTime()) return { pontos: 82, label: "82 pontos (a contar de 01/01/2022)" };
-    if (t < parseISO('2024-01-01').getTime()) return { pontos: 83, label: "83 pontos (a contar de 01/01/2023)" };
-    if (t < parseISO('2025-01-01').getTime()) return { pontos: 84, label: "84 pontos (a contar de 01/01/2024)" };
-    if (t < parseISO('2026-01-01').getTime()) return { pontos: 85, label: "85 pontos (a contar de 01/01/2025)" };
-    if (t < parseISO('2027-01-01').getTime()) return { pontos: 86, label: "86 pontos (a contar de 01/01/2026)" };
-    if (t < parseISO('2028-01-01').getTime()) return { pontos: 87, label: "87 pontos (a contar de 01/01/2027)" };
-    if (t < parseISO('2029-01-01').getTime()) return { pontos: 88, label: "88 pontos (a contar de 01/01/2028)" };
-    if (t < parseISO('2030-01-01').getTime()) return { pontos: 89, label: "89 pontos (a contar de 01/01/2029)" };
-    if (t < parseISO('2031-01-01').getTime()) return { pontos: 90, label: "90 pontos (a contar de 01/01/2030)" };
-    if (t < parseISO('2032-01-01').getTime()) return { pontos: 91, label: "91 pontos (a contar de 01/01/2031)" };
-    return { pontos: 92, label: "92 pontos (a contar de 01/01/2032)" };
+    const val = ptsF[Math.min(idx, 11)];
+    return { pontos: val, label: `${val} pontos (em ${currentYear})` };
   }
 };
 
@@ -67,122 +44,155 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
   const dInc = parseISO(data.dataInclusaoPMMG);
   const dCorte = new Date('2020-09-15T00:00:00');
 
-  const tempoServicoPMMGDias = diffInDays(dInc, dSim);
-  const { totalDias: idadeDias, formatada: idadeFormatada } = calculateAgeDaysSpecific(dNasc, dSim);
-  const totalTempoAverbado = data.averbacoes.reduce((acc, av) => acc + av.dias, 0);
-  const totalTempoDescontado = data.descontos.reduce((acc, desc) => acc + desc.dias, 0);
-  
-  const tempoContribuicaoTotal = tempoServicoPMMGDias + totalTempoAverbado - totalTempoDescontado;
-  const pontuacaoTotalDias = idadeDias + tempoContribuicaoTotal;
-  const pontuacaoInteira = Math.floor(pontuacaoTotalDias / 365);
-
   const isProfessor = data.tipoServidor === 'PEBPM';
   const isHomem = data.sexo === 'Masculino';
 
+  const { totalDias: idadeDias, formatada: idadeFormatada } = calculateAgeDaysSpecific(dNasc, dSim);
+  const tempoServicoPMMGDias = diffInDays(dInc, dSim);
+  const totalTempoAverbado = data.averbacoes.reduce((acc, av) => acc + av.dias, 0);
+  const totalTempoDescontado = data.descontos.reduce((acc, desc) => acc + desc.dias, 0);
+  const tempoContribuicaoTotal = tempoServicoPMMGDias + totalTempoAverbado - totalTempoDescontado;
+  
+  const pontuacaoTotalDias = idadeDias + tempoContribuicaoTotal;
+  const pontuacaoInteira = Math.floor(pontuacaoTotalDias / 365);
+
+  // Cálculo de Pedágio 100%
   const tempoPMMG_Corte = dInc <= dCorte ? diffInDays(dInc, dCorte) : 0;
   const metaTempoGeral = (isProfessor ? (isHomem ? 30 : 25) : (isHomem ? 35 : 30)) * 365;
   const saldoFaltanteCorte = Math.max(0, metaTempoGeral - tempoPMMG_Corte);
-  const pedagioCalculado = Math.ceil(saldoFaltanteCorte * 0.5);
+  const pedagio100 = saldoFaltanteCorte; // 100% de pedágio
 
   const calc: CalculosFinais = {
     idadeDias, idadeFormatada, tempoServicoPMMGDias, totalTempoAverbado, totalTempoDescontado,
     tempoEfetivoCivilPMMG: tempoServicoPMMGDias, tempoContribuicaoTotal,
     pontuacao: pontuacaoInteira, pontuacaoSaldoDias: pontuacaoTotalDias % 365,
-    pedagioApurado: pedagioCalculado,
-    tempoACumprir: metaTempoGeral + pedagioCalculado,
-    dataPrevistaAposentadoria: formatDateBR(addDays(dSim, Math.max(0, (metaTempoGeral + pedagioCalculado) - tempoContribuicaoTotal))),
+    pedagioApurado: Math.ceil(saldoFaltanteCorte * 0.5), // Mantido para exibição do 50% no card de resumo
+    tempoACumprir: metaTempoGeral + pedagio100,
+    dataPrevistaAposentadoria: formatDateBR(addDays(dSim, Math.max(0, (metaTempoGeral + pedagio100) - tempoContribuicaoTotal))),
     data75Anos: formatDateBR(new Date(dNasc.getFullYear() + 75, dNasc.getMonth(), dNasc.getDate())),
-    tempoEfetivo15092020: tempoPMMG_Corte, 
-    tempoMinimoExigidoDias: metaTempoGeral, 
+    tempoEfetivo15092020: tempoPMMG_Corte,
+    tempoMinimoExigidoDias: metaTempoGeral,
     saldoFaltanteCorte
   };
 
   const regras: RegraResultado[] = [];
 
-  // --- REGRAS DE PONTOS (MANTIDAS) ---
-  const pGeral = getPontosRegraGeral(data.sexo!, dSim);
-  const pProf = getPontosProfessor(data.sexo!, dSim);
+  // --- REGRAS DE PONTOS ---
+  const ptG = getPontosGeral(data.sexo!, dSim);
+  const ptP = getPontosProfessor(data.sexo!, dSim);
 
-  // --- REGRAS DE PEDÁGIO (MANTIDAS) ---
-
-  // --- REGRAS PERMANENTES (NOVO) ---
-
-  // REGRA PERMANENTE 1 - GERAL
-  const idadePermGeral = isHomem ? 65 : 62;
+  // Pontos 1 e 2
   regras.push({
-    nome: "Regra Permanente 1 - Regra permanente geral - Média permanente - Sem paridade",
-    descricao: "Regra padrão pós-reforma. Baseada na idade limite de 65/62 anos e 25 anos de contribuição.",
-    cumpre: (idadeDias/365 >= idadePermGeral) && (tempoContribuicaoTotal/365 >= 25) && data.dezAnosServicoPublico && data.cincoAnosCargoEfetivo,
+    nome: "Regra 1/2 - Transição - Pontos - Geral",
+    descricao: "Ingresso até 2020. Pontuação progressiva idade + tempo.",
+    cumpre: (data.ingressouAte2003 || data.ingressouEntre2003e2020) && (idadeDias/365 >= (isHomem ? 62 : 56)) && (tempoContribuicaoTotal/365 >= (isHomem ? 35 : 30)) && pontuacaoInteira >= ptG.pontos,
     requisitos: [
-      { label: "Idade Mínima", esperado: `${idadePermGeral} anos`, atual: `${Math.floor(idadeDias/365)} anos`, cumpre: (idadeDias/365) >= idadePermGeral },
-      { label: "Contribuição Mínima", esperado: "25 anos", atual: `${Math.floor(tempoContribuicaoTotal/365)} anos`, cumpre: (tempoContribuicaoTotal/365) >= 25 },
-      { label: "Serviço Público (10a)", esperado: "Sim", atual: data.dezAnosServicoPublico ? "Sim" : "Não", cumpre: data.dezAnosServicoPublico },
-      { label: "Cargo Efetivo (05a)", esperado: "Sim", atual: data.cincoAnosCargoEfetivo ? "Sim" : "Não", cumpre: data.cincoAnosCargoEfetivo }
+      { label: "Idade", esperado: isHomem ? "62" : "56", atual: `${Math.floor(idadeDias/365)}`, cumpre: (idadeDias/365 >= (isHomem ? 62 : 56)) },
+      { label: "Pontos", esperado: ptG.label, atual: `${pontuacaoInteira}`, cumpre: pontuacaoInteira >= ptG.pontos }
     ]
   });
 
-  // REGRA PERMANENTE 2 - ESPECIAL PROFESSOR
-  const idadePermProf = isHomem ? 60 : 57;
-  const reqPerm2 = [{ label: "É professor (PEBPM)", esperado: "Sim", atual: isProfessor ? "Sim" : "Não", cumpre: isProfessor }];
+  // Pontos 3/4 (Professor)
   if (isProfessor) {
-    reqPerm2.push(
-      { label: "Idade Mínima", esperado: `${idadePermProf} anos`, atual: `${Math.floor(idadeDias/365)} anos`, cumpre: (idadeDias/365) >= idadePermProf },
-      { label: "Regência Efetiva", esperado: "25 anos", atual: `${data.tempoRegencia} anos`, cumpre: data.tempoRegencia >= 25 },
-      { label: "Serviço Público (10a)", esperado: "Sim", atual: data.dezAnosServicoPublico ? "Sim" : "Não", cumpre: data.dezAnosServicoPublico },
-      { label: "Cargo Efetivo (05a)", esperado: "Sim", atual: data.cincoAnosCargoEfetivo ? "Sim" : "Não", cumpre: data.cincoAnosCargoEfetivo }
-    );
-  } else {
-    reqPerm2.push({ label: "Aviso", esperado: "Somente Professores", atual: "Regra não aplicável", cumpre: false });
+    regras.push({
+      nome: "Regra 3/4 - Transição - Pontos - Especial Professor",
+      descricao: "Exclusivo PEBPM. Redução de idade e tempo regência.",
+      cumpre: (idadeDias/365 >= (isHomem ? 57 : 51)) && (data.tempoRegencia >= (isHomem ? 30 : 25)) && pontuacaoInteira >= ptP.pontos,
+      requisitos: [
+        { label: "Idade", esperado: isHomem ? "57" : "51", atual: `${Math.floor(idadeDias/365)}`, cumpre: (idadeDias/365 >= (isHomem ? 57 : 51)) },
+        { label: "Regência", esperado: isHomem ? "30" : "25", atual: `${data.tempoRegencia}`, cumpre: data.tempoRegencia >= (isHomem ? 30 : 25) },
+        { label: "Pontos", esperado: ptP.label, atual: `${pontuacaoInteira}`, cumpre: pontuacaoInteira >= ptP.pontos }
+      ]
+    });
   }
 
-  regras.push({
-    nome: "Regra Permanente 2 - Regra permanente especial de professor - Média permanente - Sem paridade",
-    descricao: "Redução de 5 anos nos critérios de idade para professores em efetivo exercício na regência.",
-    cumpre: isProfessor && (idadeDias/365 >= idadePermProf) && (data.tempoRegencia >= 25) && data.dezAnosServicoPublico && data.cincoAnosCargoEfetivo,
-    requisitos: reqPerm2
-  });
+  // --- REGRAS DE PEDÁGIO (100%) ---
 
-  // REGRA PERMANENTE 3 - COMPULSÓRIA
-  const data75 = new Date(dNasc.getFullYear() + 75, dNasc.getMonth(), dNasc.getDate());
-  const jaFez75 = dSim.getTime() >= data75.getTime();
+  // Pedágio 1 - Geral Integral
   regras.push({
-    nome: "Regra Permanente 3 - Compulsória - Média proporcional - Sem paridade",
-    descricao: "Afastamento obrigatório aos 75 anos de idade.",
-    cumpre: jaFez75,
+    nome: "Regra 1 - Transição - Pedágio - Geral - Integral - Com paridade",
+    descricao: "Ingresso até 31/12/2003. Pedágio de 100%.",
+    cumpre: data.ingressouAte2003 && (idadeDias/365 >= (isHomem ? 60 : 55)) && (tempoContribuicaoTotal/365 >= (isHomem ? 35 : 30)) && (tempoContribuicaoTotal >= metaTempoGeral + pedagio100),
     requisitos: [
-      { 
-        label: "Idade Obrigatória", 
-        esperado: "75 anos", 
-        atual: `${Math.floor(idadeDias/365)} anos`, 
-        cumpre: jaFez75 
-      },
-      {
-        label: "Data Limite",
-        esperado: formatDateBR(data75),
-        atual: jaFez75 ? "Atingida" : "A vencer",
-        cumpre: jaFez75
-      },
-      {
-        label: "Informação",
-        esperado: "Afastamento Obrigatório",
-        atual: jaFez75 ? "Imediato" : "Futuro",
-        cumpre: true
-      }
+      { label: "Ingresso até 2003", esperado: "Sim", atual: data.ingressouAte2003 ? "Sim" : "Não", cumpre: data.ingressouAte2003 },
+      { label: "Idade", esperado: isHomem ? "60" : "55", atual: `${Math.floor(idadeDias/365)}`, cumpre: (idadeDias/365 >= (isHomem ? 60 : 55)) },
+      { label: "Tempo Contrib.", esperado: isHomem ? "35" : "30", atual: `${Math.floor(tempoContribuicaoTotal/365)}`, cumpre: (tempoContribuicaoTotal/365 >= (isHomem ? 35 : 30)) },
+      { label: "Pedágio (100%)", esperado: `${pedagio100} d`, atual: `${Math.max(0, tempoContribuicaoTotal - metaTempoGeral)} d`, cumpre: (tempoContribuicaoTotal >= metaTempoGeral + pedagio100) }
     ]
   });
 
-  // --- REGRAS DE PONTOS E PEDÁGIO MANTIDAS (ADICIONAR SE NECESSÁRIO NO FLUXO COMPLETO) ---
-  
-  // REGRA 1 - PEDÁGIO GERAL INTEGRAL
+  // Pedágio 2 - Geral Média
   regras.push({
-    nome: "Regra 1 - Transição - Pedágio - Geral - Integral - Com paridade",
-    descricao: "Exige ingresso até 31/12/2003, idade 60/55 e tempo 35/30.",
-    cumpre: data.ingressouAte2003 && (idadeDias/365 >= (isHomem ? 60 : 55)) && (tempoContribuicaoTotal/365 >= (isHomem ? 35 : 30)) && data.dezAnosServicoPublico && data.cincoAnosCargoEfetivo && (tempoContribuicaoTotal >= metaTempoGeral + saldoFaltanteCorte),
+    nome: "Regra 2 - Transição - Pedágio - Geral - Média integral - Sem paridade",
+    descricao: "Ingresso entre 2004 e 2020. Pedágio de 100%.",
+    cumpre: data.ingressouEntre2003e2020 && (idadeDias/365 >= (isHomem ? 60 : 55)) && (tempoContribuicaoTotal/365 >= (isHomem ? 35 : 30)) && (tempoContribuicaoTotal >= metaTempoGeral + pedagio100),
     requisitos: [
-      { label: "Ingresso até 31/12/2003", esperado: "Sim", atual: data.ingressouAte2003 ? "Sim" : "Não", cumpre: data.ingressouAte2003 },
-      { label: "Idade Mínima", esperado: isHomem ? "60 anos" : "55 anos", atual: `${Math.floor(idadeDias/365)} anos`, cumpre: (idadeDias/365) >= (isHomem ? 60 : 55) },
-      { label: "Tempo Mínimo Contribuição", esperado: isHomem ? "35 anos" : "30 anos", atual: `${Math.floor(tempoContribuicaoTotal/365)} anos`, cumpre: (tempoContribuicaoTotal/365) >= (isHomem ? 35 : 30) },
-      { label: "Pedágio (100%)", esperado: `${saldoFaltanteCorte} dias`, atual: `${Math.min(tempoContribuicaoTotal - metaTempoGeral, saldoFaltanteCorte)} dias`, cumpre: (tempoContribuicaoTotal >= metaTempoGeral + saldoFaltanteCorte) }
+      { label: "Ingresso 2004-2020", esperado: "Sim", atual: data.ingressouEntre2003e2020 ? "Sim" : "Não", cumpre: data.ingressouEntre2003e2020 },
+      { label: "Idade", esperado: isHomem ? "60" : "55", atual: `${Math.floor(idadeDias/365)}`, cumpre: (idadeDias/365 >= (isHomem ? 60 : 55)) },
+      { label: "Pedágio (100%)", esperado: `${pedagio100} d`, atual: `${Math.max(0, tempoContribuicaoTotal - metaTempoGeral)} d`, cumpre: (tempoContribuicaoTotal >= metaTempoGeral + pedagio100) }
+    ]
+  });
+
+  // Pedágio 3 e 4 (Professor)
+  const metaTempoProf = (isHomem ? 30 : 25) * 365;
+  const saldoProfCorte = Math.max(0, metaTempoProf - tempoPMMG_Corte);
+  
+  regras.push({
+    nome: "Regra 3 - Transição - Pedágio - Especial Professor - Integral",
+    descricao: "Exclusivo PEBPM. Ingresso até 2003. Pedágio 100%.",
+    cumpre: isProfessor && data.ingressouAte2003 && (idadeDias/365 >= (isHomem ? 55 : 50)) && (data.tempoRegencia >= (isHomem ? 30 : 25)) && (tempoContribuicaoTotal >= metaTempoProf + saldoProfCorte),
+    requisitos: isProfessor ? [
+      { label: "Ingresso até 2003", esperado: "Sim", atual: data.ingressouAte2003 ? "Sim" : "Não", cumpre: data.ingressouAte2003 },
+      { label: "Idade", esperado: isHomem ? "55" : "50", atual: `${Math.floor(idadeDias/365)}`, cumpre: (idadeDias/365 >= (isHomem ? 55 : 50)) },
+      { label: "Regência", esperado: isHomem ? "30" : "25", atual: `${data.tempoRegencia}`, cumpre: data.tempoRegencia >= (isHomem ? 30 : 25) },
+      { label: "Pedágio (100%)", esperado: `${saldoProfCorte} d`, atual: `${Math.max(0, tempoContribuicaoTotal - metaTempoProf)} d`, cumpre: (tempoContribuicaoTotal >= metaTempoProf + saldoProfCorte) }
+    ] : [{ label: "Aviso", esperado: "Professor", atual: "Não é PEBPM", cumpre: false }]
+  });
+
+  regras.push({
+    nome: "Regra 4 - Transição - Pedágio - Especial Professor - Média",
+    descricao: "Exclusivo PEBPM. Ingresso 2004-2020. Pedágio 100%.",
+    cumpre: isProfessor && data.ingressouEntre2003e2020 && (idadeDias/365 >= (isHomem ? 55 : 50)) && (data.tempoRegencia >= (isHomem ? 30 : 25)) && (tempoContribuicaoTotal >= metaTempoProf + saldoProfCorte),
+    requisitos: isProfessor ? [
+      { label: "Ingresso 2004-2020", esperado: "Sim", atual: data.ingressouEntre2003e2020 ? "Sim" : "Não", cumpre: data.ingressouEntre2003e2020 },
+      { label: "Idade", esperado: isHomem ? "55" : "50", atual: `${Math.floor(idadeDias/365)}`, cumpre: (idadeDias/365 >= (isHomem ? 55 : 50)) },
+      { label: "Pedágio (100%)", esperado: `${saldoProfCorte} d`, atual: `${Math.max(0, tempoContribuicaoTotal - metaTempoProf)} d`, cumpre: (tempoContribuicaoTotal >= metaTempoProf + saldoProfCorte) }
+    ] : [{ label: "Aviso", esperado: "Professor", atual: "Não é PEBPM", cumpre: false }]
+  });
+
+  // --- REGRAS PERMANENTES ---
+
+  // Permanente 1 - Geral
+  regras.push({
+    nome: "Regra Permanente 1 - Geral",
+    descricao: "Idade 65/62 anos e 25 anos de contribuição mínima.",
+    cumpre: (idadeDias/365 >= (isHomem ? 65 : 62)) && (tempoContribuicaoTotal/365 >= 25),
+    requisitos: [
+      { label: "Idade", esperado: isHomem ? "65" : "62", atual: `${Math.floor(idadeDias/365)}`, cumpre: (idadeDias/365 >= (isHomem ? 65 : 62)) },
+      { label: "Contribuição", esperado: "25", atual: `${Math.floor(tempoContribuicaoTotal/365)}`, cumpre: (tempoContribuicaoTotal/365 >= 25) }
+    ]
+  });
+
+  // Permanente 2 - Professor
+  regras.push({
+    nome: "Regra Permanente 2 - Especial Professor",
+    descricao: "Exclusivo PEBPM. Idade 60/57 anos e 25 anos de regência.",
+    cumpre: isProfessor && (idadeDias/365 >= (isHomem ? 60 : 57)) && (data.tempoRegencia >= 25),
+    requisitos: isProfessor ? [
+      { label: "Idade", esperado: isHomem ? "60" : "57", atual: `${Math.floor(idadeDias/365)}`, cumpre: (idadeDias/365 >= (isHomem ? 60 : 57)) },
+      { label: "Regência", esperado: "25", atual: `${data.tempoRegencia}`, cumpre: data.tempoRegencia >= 25 }
+    ] : [{ label: "Aviso", esperado: "Professor", atual: "Não é PEBPM", cumpre: false }]
+  });
+
+  // Permanente 3 - Compulsória
+  const dComp = new Date(dNasc.getFullYear() + 75, dNasc.getMonth(), dNasc.getDate());
+  regras.push({
+    nome: "Regra Permanente 3 - Compulsória",
+    descricao: "Afastamento obrigatório aos 75 anos de idade.",
+    cumpre: dSim.getTime() >= dComp.getTime(),
+    requisitos: [
+      { label: "Idade Limite", esperado: "75 anos", atual: `${Math.floor(idadeDias/365)}`, cumpre: dSim.getTime() >= dComp.getTime() },
+      { label: "Data Limite", esperado: formatDateBR(dComp), atual: formatDateBR(dComp), cumpre: true }
     ]
   });
 

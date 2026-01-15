@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { FormState, CalculosFinais, RegraResultado } from '../types';
-import { CheckCircle, XCircle, Printer, FileText, Info, Award, ClipboardList, Target, Calculator, Clock, Star } from 'lucide-react';
-import { formatDaysToYMD } from '../utils/dateHelpers';
+import { CheckCircle, XCircle, Printer, Calculator, Star, Target, Info, Timer } from 'lucide-react';
+import { formatDaysToYMD, formatDateBR, parseISO } from '../utils/dateHelpers';
 
 interface Props {
   data: FormState;
@@ -16,364 +16,279 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
   const handlePrint = () => {
     const reportContent = document.getElementById('printable-report')?.innerHTML;
     const printWindow = window.open('', '_blank');
-    
-    if (!printWindow) {
-      alert("Por favor, permita pop-ups para gerar o PDF.");
-      return;
-    }
-
-    const tailwindScript = `<script src="https://cdn.tailwindcss.com"></script>`;
+    if (!printWindow) return;
 
     printWindow.document.write(`
-      <!DOCTYPE html>
-      <html lang="pt-BR">
+      <html>
         <head>
-          <meta charset="UTF-8">
-          <title>Relatório de Aposentadoria - PMMG</title>
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-          ${tailwindScript}
+          <title>Relatório PMMG</title>
+          <script src="https://cdn.tailwindcss.com"></script>
           <style>
-            @page { 
-              size: A4; 
-              margin: 1.5cm; 
-            }
-            body { 
-              background: white !important; 
-              font-family: 'Inter', sans-serif; 
-              color: #334155;
-              font-size: 10.5pt;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
+            @page { size: A4; margin: 1cm; } 
+            body { font-family: sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none !important; }
-            h1, h2, h3, h4 { color: #1e293b; page-break-after: avoid; }
-            table { width: 100%; border-collapse: collapse; font-size: 9pt; }
-            tr { page-break-inside: avoid; }
-            .card { 
-              page-break-inside: avoid; 
-              border: 1px solid #f1f5f9; 
-              border-radius: 12px;
-              margin-bottom: 12px;
-            }
-            /* Suavização de cores para impressão */
-            .bg-emerald-50 { background-color: #f0fdf4 !important; }
-            .bg-rose-50 { background-color: #fff1f2 !important; }
-            .bg-amber-50 { background-color: #fffbeb !important; }
-            .bg-indigo-50 { background-color: #eef2ff !important; }
-            .bg-slate-50 { background-color: #f8fafc !important; }
-            .bg-gray-50 { background-color: #f9fafb !important; }
-            .text-white { color: #1e293b !important; } /* Inverte cor em blocos que eram escuros */
-            .border-gray-700 { border-color: #e2e8f0 !important; }
           </style>
         </head>
-        <body>
-          <div class="max-w-4xl mx-auto p-4">
-            <header class="mb-6 border-b border-slate-200 pb-4 flex items-center gap-4">
-              <div class="bg-slate-100 text-slate-700 p-2 rounded-lg w-12 h-12 flex items-center justify-center font-bold text-xl border border-slate-200">PM</div>
-              <div>
-                <h1 class="text-xl font-black text-slate-800 leading-none uppercase tracking-tight">Polícia Militar de Minas Gerais</h1>
-                <p class="text-[9px] text-slate-400 uppercase font-bold tracking-[0.1em] mt-1">Diretoria de Recursos Humanos • Simulação Informativa</p>
-              </div>
-            </header>
-            <div id="print-body">
-              ${reportContent}
-            </div>
-            <footer class="mt-8 pt-4 border-t border-slate-100 text-center">
-              <p class="text-[8px] text-slate-400 leading-tight">
-                Simulação gerada em ${new Date().toLocaleString('pt-BR')}. Documento de caráter informativo.<br/>
-                Os cálculos utilizam parâmetros da Emenda Constitucional Estadual nº 104/2020.
-              </p>
-            </footer>
-          </div>
-          <script>
-            window.onload = () => {
-              const btn = document.querySelector('.no-print');
-              if(btn) btn.remove();
-              setTimeout(() => {
-                window.print();
-              }, 800);
-            };
-          </script>
-        </body>
+        <body class="p-8">${reportContent}</body>
       </html>
     `);
     printWindow.document.close();
+    setTimeout(() => printWindow.print(), 500);
   };
 
-  const getTipoLabel = (tipo: string) => {
-    const labels: Record<string, string> = {
-      'PEBPM': 'Professor de Educação Básica (PEBPM)',
-      'EEBPM': 'Especialista em Educação Básica (EEBPM)',
-      'ASPM': 'Assistente Administrativo (ASPM)',
-      'AAPM': 'Auxiliar Administrativo (AAPM)',
-      'AGPM': 'Analista de Gestão (AGPM)'
-    };
-    return labels[tipo] || tipo;
-  };
+  const diasParaProximoPonto = 365 - calc.pontuacaoSaldoDias;
+  const baseCalculoPontos = calc.idadeDias + calc.tempoContribuicaoTotal;
+  const pedagioTotalDias = calc.saldoFaltanteCorte;
 
   return (
-    <div id="printable-report" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 font-sans text-slate-700">
+    <div id="printable-report" className="space-y-6 animate-in fade-in duration-700">
       
-      {/* Conclusão Principal - Cores ultra suaves */}
-      <div className={`p-6 rounded-2xl border ${algumaRegraCumprida ? 'bg-emerald-50/40 border-emerald-100' : 'bg-rose-50/40 border-rose-100'}`}>
-        <div className="flex items-start gap-5">
-          {algumaRegraCumprida ? (
-            <CheckCircle className="w-10 h-10 text-emerald-500 flex-shrink-0" />
-          ) : (
-            <XCircle className="w-10 h-10 text-rose-400 flex-shrink-0" />
-          )}
+      {/* Banner de Resultado */}
+      <div className={`p-6 rounded-2xl border-2 ${algumaRegraCumprida ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
+        <div className="flex items-start gap-4">
+          {algumaRegraCumprida ? <CheckCircle className="w-8 h-8 text-emerald-500" /> : <XCircle className="w-8 h-8 text-rose-500" />}
           <div>
-            <h2 className="text-xl font-extrabold mb-2 text-slate-800">Resultado da Análise</h2>
-            <p className="text-sm md:text-base leading-relaxed text-slate-600">
-              Na data da simulação ({new Date(data.dataSimulacao + 'T00:00:00').toLocaleDateString('pt-BR')}), o servidor 
+            <h2 className="text-lg font-bold text-slate-800">Análise de Elegibilidade</h2>
+            <p className="text-sm text-slate-600">
               {algumaRegraCumprida 
-                ? " atende aos requisitos cumulativos para solicitação de aposentadoria conforme as regras vigentes analisadas."
-                : " ainda não cumpre a totalidade dos requisitos legais necessários para a aposentadoria pelas regras de transição da E.C. 104/2020."}
+                ? "O servidor atende aos requisitos legais para aposentadoria em pelo menos uma regra." 
+                : "Os requisitos cumulativos para aposentadoria ainda não foram atingidos nesta data."}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Dados do Servidor - Layout limpo */}
-      <section className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-          <ClipboardList className="w-3 h-3" /> Perfil de Referência
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-3 bg-slate-50/50 rounded-lg">
-            <p className="text-[9px] font-bold text-slate-400 uppercase">Cargo</p>
-            <p className="text-xs font-bold text-slate-700">{getTipoLabel(data.tipoServidor)}</p>
-          </div>
-          <div className="p-3 bg-slate-50/50 rounded-lg">
-            <p className="text-[9px] font-bold text-slate-400 uppercase">Sexo</p>
-            <p className="text-xs font-bold text-slate-700">{data.sexo}</p>
-          </div>
-          <div className="p-3 bg-slate-50/50 rounded-lg">
-            <p className="text-[9px] font-bold text-slate-400 uppercase">Nascimento</p>
-            <p className="text-xs font-bold text-slate-700">{new Date(data.dataNascimento + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
-          </div>
-          <div className="p-3 bg-slate-50/50 rounded-lg">
-            <p className="text-[9px] font-bold text-slate-400 uppercase">Inclusão</p>
-            <p className="text-xs font-bold text-slate-700">{new Date(data.dataInclusaoPMMG + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
-          </div>
+      {/* Barra de Dados do Servidor (Separada acima dos cards) */}
+      <div className="bg-slate-50 border border-blue-100 rounded-xl px-6 py-4 flex flex-wrap gap-x-12 gap-y-3 shadow-sm">
+        <div className="flex flex-col">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Servidor</span>
+          <span className="text-xs font-black text-slate-700 uppercase">{data.tipoServidor || 'N/A'}</span>
         </div>
-      </section>
-
-      {/* Memória de Cálculo e Pontuação - Soft Design */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col">
-          <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-50">
-            <Calculator className="w-4 h-4 text-slate-400" />
-            <h3 className="text-sm font-bold text-slate-800 tracking-tight">Cálculos Justificativos</h3>
-          </div>
-          <div className="space-y-3 flex-grow text-xs">
-            <div className="flex justify-between items-center">
-              <span className="text-slate-500">Idade na Simulação:</span>
-              <span className="font-bold text-slate-700">{calc.idadeFormatada}</span>
-            </div>
-            <div className="space-y-3 flex-grow text-xs">
-            <div className="flex justify-between items-center">
-              <span className="text-slate-500">Idade na Simulação em dias:</span>
-              <span className="font-bold text-slate-700">{calc.idadeDias}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-500">Tempo Efetivo PMMG:</span>
-              <span className="font-bold text-slate-700">{formatDaysToYMD(calc.tempoServicoPMMGDias)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-500">Tempo Efetivo PMMG em dias:</span>
-              <span className="font-bold text-slate-700">{calc.tempoServicoPMMGDias}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-500">Total Averbações:</span>
-              <span className="font-bold text-emerald-600">+{calc.totalTempoAverbado} dias</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-500">Total Descontos:</span>
-              <span className="font-bold text-rose-500">-{calc.totalTempoDescontado} dias</span>
-            </div>
-            <div className="flex justify-between items-center pt-2 border-t border-slate-50">
-              <span className="font-bold text-slate-800">Tempo Contribuição Total:</span>
-              <span className="font-bold text-slate-900">{formatDaysToYMD(calc.tempoContribuicaoTotal)}</span>
-            </div>
-            <div className="flex justify-between items-center pt-2 border-t border-slate-50">
-              <span className="font-bold text-slate-800">Tempo Contribuição Total em dias:</span>
-              <span className="font-bold text-slate-900">{calc.tempoContribuicaoTotal}</span>
-            </div>
-          </div>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sexo</span>
+          <span className="text-xs font-black text-slate-700 uppercase">{data.sexo || 'N/A'}</span>
         </div>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inclusão PMMG</span>
+          <span className="text-xs font-black text-slate-700">{data.dataInclusaoPMMG ? formatDateBR(parseISO(data.dataInclusaoPMMG)) : 'N/A'}</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Regime de Ingresso</span>
+          <span className="text-xs font-black text-slate-700 uppercase">
+            {data.ingressouAte2003 ? "Até 31/12/2003" : data.ingressouEntre2003e2020 ? "Transição (Pós-2003)" : "Novo Regime"}
+          </span>
+        </div>
+      </div>
 
-        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
-          <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-50">
-            <Award className="w-4 h-4 text-slate-400" />
-            <h3 className="text-sm font-bold text-slate-800 tracking-tight">Pontuação e Pedágio</h3>
-          </div>
+      {/* Container de Cards de Resumo */}
+      <div className="rounded-2xl border-2 border-blue-400 shadow-md bg-white overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-blue-200">
           
-          <div className="space-y-4">
-            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-center">
-              <p className="text-[9px] font-black text-slate-400 tracking-[0.2em] mb-1 uppercase">PONTUAÇÃO (IDADE + TEMPO)</p>
-              <div className="flex items-baseline justify-center gap-1">
-                <span className="text-3xl font-black text-slate-800 tracking-tighter">{calc.pontuacao}</span>
-                <span className="text-xs font-bold text-slate-500 uppercase">pontos</span>
+          {/* Card 1: Tempos Apurados */}
+          <div className="p-6 space-y-6">
+            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 uppercase tracking-tight">
+              <Calculator className="w-5 h-5 text-slate-400" /> Tempos Apurados
+            </h3>
+            <div className="space-y-5">
+              <div className="flex justify-between items-start border-b border-slate-50 pb-2">
+                <span className="text-xs font-medium text-slate-500">Idade:</span>
+                <div className="text-right">
+                  <span className="text-sm font-bold text-slate-800">{calc.idadeFormatada}</span>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">({calc.idadeDias.toLocaleString()} dias)</div>
+                </div>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-3 text-center">
-                <p className="text-[8px] font-black text-slate-400 tracking-widest mb-1 uppercase">PEDÁGIO (50%)</p>
-                <p className="text-sm font-bold text-slate-700">{calc.pedagioApurado} dias</p>
+              <div className="flex justify-between items-start border-b border-slate-50 pb-2">
+                <span className="text-xs font-medium text-slate-500">Contribuição Total:</span>
+                <div className="text-right">
+                  <span className="text-sm font-bold text-slate-800">{formatDaysToYMD(calc.tempoContribuicaoTotal)}</span>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">({calc.tempoContribuicaoTotal.toLocaleString()} dias)</div>
+                </div>
               </div>
-              <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-3 text-center">
-                <p className="text-[8px] font-black text-slate-400 tracking-widest mb-1 uppercase">PREVISÃO (50%)</p>
-                <p className="text-[10px] font-bold text-slate-700">{calc.dataPrevistaAposentadoria}</p>
+              <div className="flex justify-between items-baseline pt-1">
+                <span className="text-xs text-blue-600 font-bold uppercase">Averbações:</span>
+                <span className="text-sm font-black text-blue-600">+{calc.totalTempoAverbado.toLocaleString()} dias</span>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span className="text-xs text-rose-500 font-bold uppercase">Descontos:</span>
+                <span className="text-sm font-black text-rose-500">-{calc.totalTempoDescontado.toLocaleString()} dias</span>
               </div>
             </div>
           </div>
+
+          {/* Card 2: Pontuação Atual */}
+          <div className="p-6 flex flex-col items-center bg-slate-50/30">
+            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 self-start uppercase tracking-tight">
+              <Star className="w-5 h-5 text-amber-500" /> Pontuação Atual
+            </h3>
+            
+            <div className="flex-grow flex flex-col justify-center items-center py-4">
+              <span className="text-7xl font-black text-slate-800 tracking-tighter leading-none">{calc.pontuacao}</span>
+              <p className="text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Pontos Totais</p>
+            </div>
+
+            <div className="w-full">
+               <div className="bg-white rounded-xl py-3 px-4 text-[10px] text-center text-slate-600 font-black uppercase tracking-wider border border-slate-200 shadow-sm">
+                  Saldo de {diasParaProximoPonto} dias para o próximo ponto
+               </div>
+            </div>
+          </div>
+
+          {/* Card 3: Pedágio Devido (Novo) */}
+          <div className="p-6 flex flex-col items-center">
+            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 self-start uppercase tracking-tight">
+              <Timer className="w-5 h-5 text-indigo-500" /> Pedágio (100%)
+            </h3>
+            
+            <div className="flex-grow flex flex-col justify-center items-center py-4">
+              <span className="text-5xl font-black text-indigo-600 tracking-tighter leading-none">
+                {pedagioTotalDias.toLocaleString()}
+              </span>
+              <p className="text-[11px] font-black text-indigo-400 uppercase tracking-widest mt-3">Dias Devidos</p>
+              
+              <div className="mt-4 px-4 py-2 bg-indigo-50 rounded-lg border border-indigo-100">
+                <span className="text-xs font-bold text-indigo-700">
+                  {formatDaysToYMD(pedagioTotalDias)}
+                </span>
+              </div>
+            </div>
+
+            <div className="w-full">
+               <div className="bg-slate-100 rounded-xl py-3 px-4 text-[9px] text-center text-slate-500 font-bold uppercase leading-tight">
+                  Baseado no saldo faltante verificado em 15/09/2020
+               </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
-      {/* Detalhamento Técnico - Suavizado para cinza claro */}
-      <section className="bg-slate-50 p-6 rounded-xl border border-slate-200">
-        <h3 className="text-sm font-bold mb-4 flex items-center gap-2 border-b border-slate-200 pb-2 text-slate-700">
-          <Clock className="w-4 h-4 text-slate-400" /> Detalhamento Técnico dos Pedágios
+      {/* Memória de Cálculo Detalhada */}
+      <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-4">
+          <Info className="w-4 h-4 text-blue-500" /> Memória de Cálculo Detalhada
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <p className="text-[8px] font-bold text-slate-400 uppercase mb-1">Situação em 15/09/2020</p>
-            <p className="text-xs font-bold text-slate-700">{formatDaysToYMD(calc.tempoEfetivo15092020)}</p>
-            <p className="text-[8px] text-slate-400 mt-0.5 italic">Tempo no corte da reforma</p>
-          </div>
-          <div>
-            <p className="text-[8px] font-bold text-slate-400 uppercase mb-1">Saldo Faltante no Corte</p>
-            <p className="text-xs font-bold text-slate-700">{calc.saldoFaltanteCorte} dias</p>
-            <p className="text-[8px] text-slate-400 mt-0.5 italic">Para atingir o tempo mínimo</p>
-          </div>
-          <div>
-            <p className="text-[8px] font-bold text-slate-400 uppercase mb-1">Cálculo dos Adicionais</p>
-            <div className="flex gap-4">
-              <div className="text-xs">
-                <span className="font-bold text-blue-500">50%: </span>
-                <span className="font-bold text-slate-700">{Math.ceil(calc.saldoFaltanteCorte * 0.5)} d</span>
-              </div>
-              <div className="text-xs">
-                <span className="font-bold text-rose-400">100%: </span>
-                <span className="font-bold text-slate-700">{calc.saldoFaltanteCorte} d</span>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          
+          <div className="space-y-2 text-xs font-mono bg-slate-50 p-4 rounded-lg border border-slate-100">
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-wider">Cálculo Contribuição</h4>
+            <div className="flex justify-between">
+              <span>Tempo Efetivo (PMMG):</span>
+              <span className="font-bold">{calc.tempoEfetivoCivilPMMG.toLocaleString()} dias</span>
+            </div>
+            <div className="flex justify-between text-blue-600">
+              <span>(+) Averbações:</span>
+              <span>{calc.totalTempoAverbado.toLocaleString()} dias</span>
+            </div>
+            <div className="flex justify-between text-rose-600">
+              <span>(-) Descontos:</span>
+              <span>{calc.totalTempoDescontado.toLocaleString()} dias</span>
+            </div>
+            <div className="border-t border-slate-300 pt-2 flex justify-between text-xs font-bold text-slate-800">
+              <span>Tempo Líquido:</span>
+              <span>{calc.tempoContribuicaoTotal.toLocaleString()} dias</span>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* NOVO: Detalhamento Técnico da Pontuação */}
-      <section className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-amber-400">
-        <h3 className="text-sm font-bold mb-4 flex items-center gap-2 border-b border-slate-100 pb-2 text-slate-700">
-          <Star className="w-4 h-4 text-amber-500" /> Detalhamento Técnico da Pontuação
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <p className="text-[8px] font-bold text-slate-400 uppercase mb-1">Componente Idade</p>
-            <p className="text-xs font-bold text-slate-700">{calc.idadeDias} dias</p>
-            <p className="text-[8px] text-slate-400 mt-0.5 italic">({Math.floor(calc.idadeDias/365)} anos completos)</p>
-          </div>
-          <div>
-            <p className="text-[8px] font-bold text-slate-400 uppercase mb-1">Componente Tempo</p>
-            <p className="text-xs font-bold text-slate-700">{calc.tempoContribuicaoTotal} dias</p>
-            <p className="text-[8px] text-slate-400 mt-0.5 italic">({Math.floor(calc.tempoContribuicaoTotal/365)} anos completos)</p>
-          </div>
-          <div className="bg-amber-50/30 p-2 rounded-lg border border-amber-100/50">
-            <p className="text-[8px] font-bold text-amber-600 uppercase mb-1">Soma para Pontos</p>
-            <p className="text-xs font-black text-slate-800">{(calc.idadeDias + calc.tempoContribuicaoTotal)} dias</p>
-            <p className="text-[8px] text-amber-600/70 mt-0.5 font-bold italic">Resulta em {calc.pontuacao} pontos</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Análise de Requisitos */}
-      <section>
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-1.5 bg-slate-100 rounded-lg">
-            <Target className="w-4 h-4 text-slate-500" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-slate-800 tracking-tight leading-none">Avaliação de Requisitos Legais</h3>
-            <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-1">Critérios E.C. Estadual nº 104/2020</p>
-          </div>
-        </div>
-        
-        <div className="space-y-6">
-          {regras.map((regra, idx) => (
-            <div key={idx} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden page-break-inside-avoid">
-              <div className="p-5">
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
-                  <div className="max-w-xl">
-                    <h4 className="text-base font-bold text-slate-800 leading-tight">{regra.nome}</h4>
-                    <p className="text-[10px] text-slate-500 mt-1 font-medium leading-relaxed italic border-l border-slate-200 pl-3">{regra.descricao}</p>
-                  </div>
-                  <div className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider ${regra.cumpre ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'}`}>
-                    {regra.cumpre ? 'Satisfeito' : 'Não Atende'}
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="text-[8px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-50">
-                        <th className="pb-2">REQUISITO</th>
-                        <th className="pb-2 text-center">EXIGIDO</th>
-                        <th className="pb-2 text-center">APURADO</th>
-                        <th className="pb-2 text-right">STATUS</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {regra.requisitos.map((req, rIdx) => (
-                        <tr key={rIdx}>
-                          <td className="py-3">
-                            <span className="text-[11px] font-medium text-slate-600">{req.label}</span>
-                          </td>
-                          <td className="py-3 text-center">
-                            <span className="text-[10px] font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">{req.esperado}</span>
-                          </td>
-                          <td className="py-3 text-center">
-                            <span className={`text-[10px] font-bold ${req.cumpre ? 'text-emerald-600' : 'text-rose-500'}`}>
-                              {req.atual}
-                            </span>
-                          </td>
-                          <td className="py-3 text-right">
-                            <div className="flex justify-end">
-                              {req.cumpre ? (
-                                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                              ) : (
-                                <XCircle className="w-3.5 h-3.5 text-rose-300" />
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+          <div className="space-y-2 text-xs font-mono bg-slate-50 p-4 rounded-lg border border-slate-100">
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-wider">Cálculo Pontuação</h4>
+            <div className="flex justify-between">
+              <span>Idade em dias:</span>
+              <span className="font-bold">{calc.idadeDias.toLocaleString()} dias</span>
             </div>
-          ))}
+            <div className="flex justify-between text-indigo-600">
+              <span>(+) Tempo Contrib.:</span>
+              <span>{calc.tempoContribuicaoTotal.toLocaleString()} dias</span>
+            </div>
+            <div className="border-t border-slate-300 pt-2 flex justify-between">
+              <span>(=) Base Pontos:</span>
+              <span className="font-bold">{baseCalculoPontos.toLocaleString()} dias</span>
+            </div>
+            <div className="flex justify-between text-xs font-bold text-slate-800">
+              <span>Base / 365:</span>
+              <span>{calc.pontuacao} pts + {calc.pontuacaoSaldoDias} d</span>
+            </div>
+          </div>
+
+          <div className="space-y-2 text-xs font-mono bg-slate-50 p-4 rounded-lg border border-slate-100">
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-wider">Cálculo Pedágio (100%)</h4>
+            <div className="flex justify-between">
+              <span>Meta (Tempo Mínimo):</span>
+              <span className="font-bold">{calc.tempoMinimoExigidoDias.toLocaleString()} dias</span>
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>(-) Tempo em 15/09/20:</span>
+              <span>{calc.tempoEfetivo15092020.toLocaleString()} dias</span>
+            </div>
+            <div className="border-t border-slate-300 pt-1 flex justify-between">
+              <span>(=) Saldo no Corte:</span>
+              <span className="font-bold">{calc.saldoFaltanteCorte.toLocaleString()} dias</span>
+            </div>
+            <div className="flex justify-between text-blue-600">
+              <span>(+) Pedágio (100%):</span>
+              <span className="font-bold">{calc.saldoFaltanteCorte.toLocaleString()} dias</span>
+            </div>
+            <div className="border-t border-slate-300 pt-1 flex justify-between text-xs font-bold text-slate-800">
+              <span>Total a Cumprir:</span>
+              <span>{calc.tempoACumprir.toLocaleString()} dias</span>
+            </div>
+          </div>
+
         </div>
       </section>
 
-      {/* Regra Compulsória - Soft Alert */}
-      <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 relative overflow-hidden page-break-inside-avoid">
-        <div className="relative z-10">
-          <p className="text-[9px] font-black text-slate-400 tracking-widest mb-1 uppercase">Aviso de Aposentadoria Compulsória</p>
-          <h4 className="text-sm font-bold text-slate-800 mb-2">Limite Constitucional de Permanência</h4>
-          <p className="text-[11px] leading-relaxed text-slate-500 max-w-2xl">
-            Conforme Art. 40, § 1º, II da CF, o servidor completará 75 anos em 
-            <strong className="text-slate-800 bg-white border border-slate-200 px-1.5 py-0.5 rounded mx-1">{calc.data75Anos}</strong>. 
-            O desligamento ocorre obrigatoriamente no dia subsequente ao aniversário.
-          </p>
-        </div>
+      {/* Regras Detalhadas */}
+      <section className="space-y-4">
+        <h3 className="text-sm font-bold flex items-center gap-2 text-slate-700">
+          <Target className="w-4 h-4" /> Detalhamento por Regra
+        </h3>
+        {regras.map((regra, idx) => (
+          <div key={idx} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+              <div>
+                <h4 className="text-sm font-bold text-slate-800">{regra.nome}</h4>
+                <p className="text-[10px] text-slate-500 italic">{regra.descricao}</p>
+              </div>
+              <span className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase ${regra.cumpre ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                {regra.cumpre ? 'Satisfeito' : 'Incompleto'}
+              </span>
+            </div>
+            <div className="p-4">
+              <table className="w-full text-[11px]">
+                <thead>
+                  <tr className="text-slate-400 uppercase text-[9px] border-b">
+                    <th className="text-left pb-2">Requisito</th>
+                    <th className="text-center pb-2">Exigido</th>
+                    <th className="text-center pb-2">Apurado</th>
+                    <th className="text-right pb-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {regra.requisitos.map((req, rIdx) => (
+                    <tr key={rIdx}>
+                      <td className="py-2 text-slate-600">{req.label}</td>
+                      <td className="py-2 text-center font-bold text-slate-800">{req.esperado}</td>
+                      <td className={`py-2 text-center font-bold ${req.cumpre ? 'text-emerald-600' : 'text-rose-500'}`}>{req.atual}</td>
+                      <td className="py-2 text-right">{req.cumpre ? <CheckCircle className="w-3 h-3 text-emerald-400 ml-auto" /> : <XCircle className="w-3 h-3 text-rose-300 ml-auto" />}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      {/* Mensagem Compulsória */}
+      <div className="p-5 bg-amber-50 rounded-xl border border-amber-200">
+        <h4 className="text-xs font-bold text-amber-800 mb-2 uppercase tracking-wider">Aviso de Aposentadoria Compulsória</h4>
+        <p className="text-[11px] leading-relaxed text-amber-700">
+          O servidor completará 75 anos de idade na data de <strong>{calc.data75Anos}</strong>. Após essa idade o servidor é obrigado a se afastar, independentemente de ter cumprido os demais requisitos previstos em lei para aposentar-se. A unidade deverá considerar a data de aniversário dos 75 anos, como data do final do efetivo exercício, sendo a vigência no dia imediatamente seguinte ao aniversário.
+        </p>
       </div>
 
-      <div className="flex justify-center py-6 no-print">
-        <button onClick={handlePrint} className="flex items-center gap-2 bg-slate-800 text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-slate-900 transition-all shadow-md hover:scale-[1.02] transform active:scale-95">
-          <Printer className="w-4 h-4" /> Gerar Relatório (PDF)
+      <div className="no-print flex justify-center py-4">
+        <button onClick={handlePrint} className="bg-slate-800 text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-slate-900 transition flex items-center gap-2 shadow-lg">
+          <Printer className="w-4 h-4" /> Imprimir Relatório Oficial
         </button>
       </div>
     </div>
