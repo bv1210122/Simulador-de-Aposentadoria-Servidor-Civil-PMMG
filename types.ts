@@ -4,20 +4,17 @@ export type Sexo = 'Masculino' | 'Feminino';
 
 export interface Averbação {
   id: string;
-  nome: string;
-  dataInicial: string;
-  dataFinal: string;
-  regime: 'RGPS' | 'RPPS';
+  regime: 'RGPS' | 'RPPS' | '';
   origem: string;
   funcao: string;
+  dataAverbacao: string; // Data de publicação/registro da averbação
+  anos: number;
   dias: number;
 }
 
 export interface Desconto {
   id: string;
   tipo: string;
-  dataInicial: string;
-  dataFinal: string;
   dias: number;
 }
 
@@ -36,16 +33,18 @@ export interface FormState {
   tempoRegencia: number;
 }
 
+export interface Requisito {
+  label: string;
+  esperado: string;
+  atual: string;
+  cumpre: boolean;
+}
+
 export interface RegraResultado {
   nome: string;
   descricao: string;
   cumpre: boolean;
-  requisitos: {
-    label: string;
-    esperado: string;
-    atual: string;
-    cumpre: boolean;
-  }[];
+  requisitos: Requisito[];
 }
 
 export interface CalculosFinais {
@@ -62,7 +61,6 @@ export interface CalculosFinais {
   tempoACumprir: number;
   dataPrevistaAposentadoria: string;
   data75Anos: string;
-  // Campos adicionais solicitados para detalhamento técnico
   tempoEfetivo15092020: number;
   tempoMinimoExigidoDias: number;
   saldoFaltanteCorte: number;

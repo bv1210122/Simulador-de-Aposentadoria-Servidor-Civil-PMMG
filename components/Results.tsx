@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { FormState, CalculosFinais, RegraResultado } from '../types';
-import { CheckCircle, XCircle, Printer, Calculator, Star, Target, Info, Timer, CalendarDays } from 'lucide-react';
+import { FormState, CalculosFinais, RegraResultado, Requisito } from '../types';
+import { CheckCircle, XCircle, Printer, Calculator, Star, Target, Info, Timer, CalendarDays, FileText } from 'lucide-react';
 import { formatDaysToYMD, formatDateBR, parseISO } from '../utils/dateHelpers';
 
 interface Props {
@@ -10,7 +10,31 @@ interface Props {
   regras: RegraResultado[];
 }
 
-// Fixed the typo in the destructuring below by removing "模仿"
+const SummaryCard: React.FC<{ 
+  title: string, 
+  icon: React.ReactNode, 
+  children: React.ReactNode, 
+  bgColor?: string 
+}> = ({ title, icon, children, bgColor = "bg-white" }) => (
+  <div className={`p-3 flex flex-col items-center ${bgColor}`}>
+    <h3 className="text-[10px] font-bold text-slate-500 flex items-center gap-1.5 self-start uppercase tracking-wider mb-2 w-full border-b border-slate-100 pb-1">
+      {icon} {title}
+    </h3>
+    <div className="w-full flex-1 flex flex-col justify-center items-center">
+      {children}
+    </div>
+  </div>
+);
+
+const MemorySection: React.FC<{ title: string, icon?: React.ReactNode, children: React.ReactNode }> = ({ title, icon, children }) => (
+  <div className="space-y-1 text-[10px] font-mono bg-slate-50 p-3 rounded-md border border-slate-100">
+    <h4 className="text-[9px] font-bold text-slate-400 uppercase mb-1.5 tracking-wider flex items-center gap-1">
+      {icon} {title}
+    </h4>
+    {children}
+  </div>
+);
+
 const Results: React.FC<Props> = ({ data, calc, regras }) => {
   const algumaRegraCumprida = regras.some(r => r.cumpre);
 
@@ -18,7 +42,6 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
     const reportContent = document.getElementById('printable-report')?.innerHTML;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-
     printWindow.document.write(`
       <html>
         <head>
@@ -28,7 +51,6 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
             @page { size: A4; margin: 1cm; } 
             body { font-family: sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none !important; }
-            .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
           </style>
         </head>
         <body class="p-8">${reportContent}</body>
@@ -38,253 +60,188 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
     setTimeout(() => printWindow.print(), 500);
   };
 
-  const diasParaProximoPonto = 365 - calc.pontuacaoSaldoDias;
-  const baseCalculoPontos = calc.idadeDias + calc.tempoContribuicaoTotal;
-  const pedagioTotalDias = calc.pedagioApurado;
+  const formatDateStr = (dateStr: string) => {
+    if (!dateStr) return '-';
+    const [y, m, d] = dateStr.split('-');
+    return `${d}/${m}/${y}`;
+  };
+
+  const DataSummaryRow = ({ label, value, highlight = false }: { label: string, value: React.ReactNode, highlight?: boolean }) => (
+    <div className={`flex justify-between items-center text-[10px] border-b border-slate-100 last:border-0 py-1.5 ${highlight ? 'font-bold bg-slate-50/50' : ''}`}>
+      <span className="text-slate-500 font-medium">{label}</span>
+      <span className={`text-right ${highlight ? 'text-blue-700' : 'text-slate-700 font-semibold'}`}>{value}</span>
+    </div>
+  );
 
   return (
-    <div id="printable-report" className="space-y-6 animate-in fade-in duration-700">
+    <div id="printable-report" className="space-y-4 animate-in fade-in duration-700">
       
-      {/* Banner de Resultado */}
-      <div className={`p-6 rounded-2xl border-2 ${algumaRegraCumprida ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
-        <div className="flex items-start gap-4">
-          {algumaRegraCumprida ? <CheckCircle className="w-8 h-8 text-emerald-500" /> : <XCircle className="w-8 h-8 text-rose-500" />}
+      {/* Banner de Resultado Principal */}
+      <div className={`p-4 rounded-xl border ${algumaRegraCumprida ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
+        <div className="flex items-center gap-3">
+          {algumaRegraCumprida ? <CheckCircle className="w-6 h-6 text-emerald-500" /> : <XCircle className="w-6 h-6 text-rose-500" />}
           <div>
-            <h2 className="text-lg font-bold text-slate-800">Análise de Elegibilidade</h2>
-            <p className="text-sm text-slate-600">
+            <h2 className="text-sm font-bold text-slate-800">
+              {algumaRegraCumprida ? "Servidor Elegível" : "Ainda não Elegível"}
+            </h2>
+            <p className="text-xs text-slate-600 leading-tight">
               {algumaRegraCumprida 
-                ? "O servidor atende aos requisitos legais para aposentadoria em pelo menos uma regra." 
-                : "Os requisitos cumulativos para aposentadoria ainda não foram atingidos nesta data."}
+                ? "Requisitos legais atendidos em pelo menos uma regra." 
+                : "Requisitos cumulativos não atingidos."}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Barra de Dados do Servidor */}
-      <div className="bg-slate-50 border border-blue-100 rounded-xl px-6 py-4 flex flex-wrap gap-x-12 gap-y-3 shadow-sm">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Servidor</span>
-          <span className="text-xs font-black text-slate-700 uppercase">{data.tipoServidor || 'N/A'}</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sexo</span>
-          <span className="text-xs font-black text-slate-700 uppercase">{data.sexo || 'N/A'}</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inclusão PMMG</span>
-          <span className="text-xs font-black text-slate-700">{data.dataInclusaoPMMG ? formatDateBR(parseISO(data.dataInclusaoPMMG)) : 'N/A'}</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Regime de Ingresso</span>
-          <span className="text-xs font-black text-slate-700 uppercase">
-            {data.ingressouAte2003 ? "Até 31/12/2003" : data.ingressouEntre2003e2020 ? "Transição (Pós-2003)" : "Novo Regime"}
-          </span>
-        </div>
-      </div>
-
-      {/* Container de Cards de Resumo */}
-      <div className="rounded-2xl border-2 border-blue-400 shadow-md bg-white overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-blue-200">
-          
-          <div className="p-6 space-y-6">
-            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 uppercase tracking-tight">
-              <Calculator className="w-5 h-5 text-slate-400" /> Tempos Apurados
+      {/* Resumo dos Dados Informados */}
+      <section className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+        <div className="bg-slate-100/50 px-4 py-2 border-b border-slate-200 flex justify-between items-center">
+            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                <FileText className="w-3 h-3 text-blue-600" /> Resumo dos Dados Informados
             </h3>
-            <div className="space-y-5">
-              <div className="flex justify-between items-start border-b border-slate-50 pb-2">
-                <span className="text-xs font-medium text-slate-500">Idade:</span>
-                <div className="text-right">
-                  <span className="text-sm font-bold text-slate-800">{calc.idadeFormatada}</span>
-                  <div className="text-[10px] text-slate-400 font-bold uppercase">({calc.idadeDias.toLocaleString()} dias)</div>
-                </div>
-              </div>
-              <div className="flex justify-between items-start border-b border-slate-50 pb-2">
-                <span className="text-xs font-medium text-slate-500">Contribuição Total:</span>
-                <div className="text-right">
-                  <span className="text-sm font-bold text-slate-800">{formatDaysToYMD(calc.tempoContribuicaoTotal)}</span>
-                  <div className="text-[10px] text-slate-400 font-bold uppercase">({calc.tempoContribuicaoTotal.toLocaleString()} dias)</div>
-                </div>
-              </div>
-              <div className="flex justify-between items-baseline pt-1">
-                <span className="text-xs text-blue-600 font-bold uppercase">Averbações:</span>
-                <span className="text-sm font-black text-blue-600">+{calc.totalTempoAverbado.toLocaleString()} dias</span>
-              </div>
-              <div className="flex justify-between items-baseline">
-                <span className="text-xs text-rose-500 font-bold uppercase">Descontos:</span>
-                <span className="text-sm font-black text-rose-500">-{calc.totalTempoDescontado.toLocaleString()} dias</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6 flex flex-col items-center bg-slate-50/30">
-            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 self-start uppercase tracking-tight">
-              <Star className="w-5 h-5 text-amber-500" /> Pontuação Atual
-            </h3>
-            
-            <div className="flex-grow flex flex-col justify-center items-center py-4">
-              <span className="text-7xl font-black text-slate-800 tracking-tighter leading-none">{calc.pontuacao}</span>
-              <p className="text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Pontos Totais</p>
-            </div>
-
-            <div className="w-full">
-               <div className="bg-white rounded-xl py-3 px-4 text-[10px] text-center text-slate-600 font-black uppercase tracking-wider border border-slate-200 shadow-sm">
-                  Saldo de {diasParaProximoPonto} dias para o próximo ponto
-               </div>
-            </div>
-          </div>
-
-          <div className="p-6 flex flex-col items-center">
-            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 self-start uppercase tracking-tight">
-              <Timer className="w-5 h-5 text-indigo-500" /> Pedágio (50%)
-            </h3>
-            
-            <div className="flex-grow flex flex-col justify-center items-center py-4">
-              <span className="text-5xl font-black text-indigo-600 tracking-tighter leading-none">
-                {pedagioTotalDias.toLocaleString()}
-              </span>
-              <p className="text-[11px] font-black text-indigo-400 uppercase tracking-widest mt-3">Dias Devidos</p>
-              
-              <div className="mt-4 px-4 py-2 bg-indigo-50 rounded-lg border border-indigo-100">
-                <span className="text-xs font-bold text-indigo-700">
-                  {formatDaysToYMD(pedagioTotalDias)}
-                </span>
-              </div>
-            </div>
-
-            <div className="w-full">
-               <div className="bg-slate-100 rounded-xl py-3 px-4 text-[9px] text-center text-slate-500 font-bold uppercase leading-tight">
-                  Baseado no saldo faltante verificado em 15/09/2020
-               </div>
-            </div>
-          </div>
-
         </div>
-      </div>
-
-      <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-4">
-          <Info className="w-4 h-4 text-blue-500" /> Memória de Cálculo Detalhada
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          
-          <div className="space-y-2 text-xs font-mono bg-slate-50 p-4 rounded-lg border border-slate-100">
-            <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-wider flex items-center gap-1">
-               <CalendarDays className="w-3 h-3" /> Cálculo Contribuição
-            </h4>
-            <div className="flex justify-between">
-              <span>Tempo Efetivo (PMMG):</span>
-              <span className="font-bold">{calc.tempoEfetivoCivilPMMG.toLocaleString()} d</span>
-            </div>
+        <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6">
             
-            {data.averbacoes.length > 0 && (
-              <div className="mt-2 pt-1 border-t border-slate-200 space-y-1">
-                <span className="text-[9px] text-blue-500 font-bold uppercase">Detalhamento Averbações:</span>
-                {data.averbacoes.map(av => (
-                  <div key={av.id} className="flex justify-between text-[10px] text-blue-700">
-                    <span className="truncate max-w-[120px]">{av.nome || 'Período'}:</span>
-                    <span className="whitespace-nowrap">{av.dataInicial ? formatDateBR(parseISO(av.dataInicial)) : '?'} a {av.dataFinal ? formatDateBR(parseISO(av.dataFinal)) : '?'} ({av.dias}d)</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Col 1: Pessoal */}
+            <div>
+                <h4 className="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider border-b border-slate-200 pb-1">Perfil e Datas</h4>
+                <DataSummaryRow label="Tipo de Servidor" value={data.tipoServidor} />
+                <DataSummaryRow label="Sexo" value={data.sexo} />
+                <DataSummaryRow label="Data Nascimento" value={formatDateStr(data.dataNascimento)} />
+                <DataSummaryRow label="Data Inclusão" value={formatDateStr(data.dataInclusaoPMMG)} />
+                <DataSummaryRow label="Data Simulação" value={formatDateStr(data.dataSimulacao)} highlight />
+            </div>
 
-            {data.descontos.length > 0 && (
-              <div className="mt-2 pt-1 border-t border-slate-200 space-y-1">
-                <span className="text-[9px] text-rose-500 font-bold uppercase">Detalhamento Descontos:</span>
-                {data.descontos.map(desc => (
-                  <div key={desc.id} className="flex justify-between text-[10px] text-rose-700">
-                    <span className="truncate max-w-[120px]">{desc.tipo}:</span>
-                    <span className="whitespace-nowrap">{desc.dataInicial ? formatDateBR(parseISO(desc.dataInicial)) : '?'} a {desc.dataFinal ? formatDateBR(parseISO(desc.dataFinal)) : '?'} ({desc.dias}d)</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Col 2: Carreira */}
+            <div>
+                <h4 className="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider border-b border-slate-200 pb-1">Marcos de Carreira</h4>
+                <DataSummaryRow label="Ingresso até 2003" value={data.ingressouAte2003 ? "Sim" : "Não"} />
+                <DataSummaryRow label="Ingresso 2004-2020" value={data.ingressouEntre2003e2020 ? "Sim" : "Não"} />
+                <DataSummaryRow label="10 Anos Svc. Público" value={data.dezAnosServicoPublico ? "Sim" : "Não"} />
+                <DataSummaryRow label="5 Anos Cargo Efetivo" value={data.cincoAnosCargoEfetivo ? "Sim" : "Não"} />
+                {data.tipoServidor === 'PEBPM' && (
+                    <DataSummaryRow label="Tempo de Regência" value={`${data.tempoRegencia} anos`} highlight />
+                )}
+            </div>
 
-            <div className="border-t border-slate-300 pt-2 flex justify-between text-xs font-bold text-slate-800">
-              <span>Tempo Líquido:</span>
-              <span>{calc.tempoContribuicaoTotal.toLocaleString()} dias</span>
+            {/* Col 3: Ajustes */}
+            <div>
+                <h4 className="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider border-b border-slate-200 pb-1">Tempos Adicionais</h4>
+                <DataSummaryRow label="Registros Averbados" value={data.averbacoes.length} />
+                <DataSummaryRow label="Total Averbado (Dias)" value={`+ ${calc.totalTempoAverbado}`} highlight />
+                <div className="h-2"></div>
+                <DataSummaryRow label="Registros Descontos" value={data.descontos.length} />
+                <DataSummaryRow label="Total Descontado (Dias)" value={`- ${calc.totalTempoDescontado}`} highlight />
             </div>
-          </div>
-
-          <div className="space-y-2 text-xs font-mono bg-slate-50 p-4 rounded-lg border border-slate-100">
-            <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-wider">Cálculo Pontuação</h4>
-            <div className="flex justify-between">
-              <span>Idade em dias:</span>
-              <span className="font-bold">{calc.idadeDias.toLocaleString()} dias</span>
-            </div>
-            <div className="flex justify-between text-indigo-600">
-              <span>(+) Tempo Contrib.:</span>
-              <span>{calc.tempoContribuicaoTotal.toLocaleString()} dias</span>
-            </div>
-            <div className="border-t border-slate-300 pt-2 flex justify-between">
-              <span>(=) Base Pontos:</span>
-              <span className="font-bold">{baseCalculoPontos.toLocaleString()} dias</span>
-            </div>
-            <div className="flex justify-between text-xs font-bold text-slate-800">
-              <span>Base / 365:</span>
-              <span>{calc.pontuacao} pts + {calc.pontuacaoSaldoDias} d</span>
-            </div>
-          </div>
-
-          <div className="space-y-2 text-xs font-mono bg-slate-50 p-4 rounded-lg border border-slate-100">
-            <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-wider">Cálculo Pedágio (50%)</h4>
-            <div className="flex justify-between">
-              <span>Meta (Tempo Mínimo):</span>
-              <span className="font-bold">{calc.tempoMinimoExigidoDias.toLocaleString()} dias</span>
-            </div>
-            <div className="flex justify-between text-slate-400">
-              <span>(-) Tempo em 15/09/20:</span>
-              <span>{calc.tempoEfetivo15092020.toLocaleString()} dias</span>
-            </div>
-            <div className="border-t border-slate-300 pt-1 flex justify-between">
-              <span>(=) Saldo no Corte:</span>
-              <span className="font-bold">{calc.saldoFaltanteCorte.toLocaleString()} dias</span>
-            </div>
-            <div className="flex justify-between text-blue-600">
-              <span>(+) Pedágio (50%):</span>
-              <span className="font-bold">{calc.pedagioApurado.toLocaleString()} dias</span>
-            </div>
-            <div className="border-t border-slate-300 pt-1 flex justify-between text-xs font-bold text-slate-800">
-              <span>Total a Cumprir:</span>
-              <span>{calc.tempoACumprir.toLocaleString()} dias</span>
-            </div>
-          </div>
-
         </div>
       </section>
 
-      <section className="space-y-4">
-        <h3 className="text-sm font-bold flex items-center gap-2 text-slate-700">
-          <Target className="w-4 h-4" /> Detalhamento por Regra
+      {/* Grid de Cards de Resumo - Compacto e Lado a Lado */}
+      <div className="rounded-xl border border-blue-200 shadow-sm bg-white overflow-hidden grid grid-cols-3 divide-x divide-blue-100">
+        
+        {/* Tempos Apurados */}
+        <SummaryCard title="Tempos" icon={<Calculator className="w-3 h-3 text-slate-400" />}>
+          <div className="w-full space-y-2">
+            <div className="flex justify-between items-baseline">
+              <span className="text-[10px] text-slate-500 uppercase font-bold">Idade</span>
+              <div className="text-right leading-none">
+                <div className="text-xs font-bold text-slate-700">{calc.idadeFormatada}</div>
+                <div className="text-[9px] text-slate-400">({calc.idadeDias.toLocaleString()} dias)</div>
+              </div>
+            </div>
+            <div className="flex justify-between items-baseline">
+              <span className="text-[10px] text-slate-500 uppercase font-bold">Contrib.</span>
+              <div className="text-right leading-none">
+                <div className="text-xs font-bold text-slate-700">{formatDaysToYMD(calc.tempoContribuicaoTotal)}</div>
+                <div className="text-[9px] text-slate-400">({calc.tempoContribuicaoTotal.toLocaleString()} dias)</div>
+              </div>
+            </div>
+          </div>
+        </SummaryCard>
+
+        {/* Pontuação */}
+        <SummaryCard title="Pontos" icon={<Star className="w-3 h-3 text-amber-500" />} bgColor="bg-slate-50/50">
+          <div className="text-center">
+            <span className="text-3xl font-black text-slate-700 tracking-tighter leading-none">{calc.pontuacao}</span>
+            <div className="mt-1.5 w-full bg-white rounded-lg py-1 px-1 text-[9px] text-center text-slate-500 font-bold uppercase tracking-tight border border-slate-200">
+              Faltam {365 - calc.pontuacaoSaldoDias} dias
+            </div>
+          </div>
+        </SummaryCard>
+
+        {/* Pedágio */}
+        <SummaryCard title="Pedágio (50%)" icon={<Timer className="w-3 h-3 text-indigo-500" />}>
+          <div className="text-center">
+            <span className="text-2xl font-black text-indigo-600 tracking-tighter leading-none">
+              {calc.pedagioApurado.toLocaleString()}
+            </span>
+            <p className="text-[9px] font-bold text-indigo-300 uppercase tracking-wide">Dias</p>
+            <div className="mt-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 inline-block">
+              {formatDaysToYMD(calc.pedagioApurado)}
+            </div>
+          </div>
+        </SummaryCard>
+      </div>
+
+      {/* Memória de Cálculo */}
+      <section className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <h3 className="text-xs font-bold text-slate-800 flex items-center gap-2 mb-3">
+          <Info className="w-3 h-3 text-blue-500" /> Memória Resumida
+        </h3>
+        <div className="grid grid-cols-3 gap-3">
+          <MemorySection title="Contribuição" icon={<CalendarDays className="w-3 h-3" />}>
+             <div className="flex justify-between"><span>PMMG:</span> <span className="font-bold">{calc.tempoEfetivoCivilPMMG}</span></div>
+             <div className="flex justify-between text-blue-600"><span>Averba:</span> <span>+{calc.totalTempoAverbado}</span></div>
+             <div className="flex justify-between text-rose-500"><span>Desc:</span> <span>-{calc.totalTempoDescontado}</span></div>
+             <div className="border-t border-slate-200 pt-1 flex justify-between font-bold text-slate-800"><span>Líq:</span> <span>{calc.tempoContribuicaoTotal}</span></div>
+          </MemorySection>
+
+          <MemorySection title="Pontuação">
+             <div className="flex justify-between"><span>Idade:</span> <span>{calc.idadeDias}</span></div>
+             <div className="flex justify-between"><span>Tempo:</span> <span>{calc.tempoContribuicaoTotal}</span></div>
+             <div className="border-t border-slate-200 pt-1 flex justify-between font-bold text-indigo-600"><span>Total:</span> <span>{calc.pontuacao}</span></div>
+          </MemorySection>
+
+          <MemorySection title="Pedágio">
+             <div className="flex justify-between"><span>Corte:</span> <span>{calc.tempoEfetivo15092020}</span></div>
+             <div className="flex justify-between"><span>Meta:</span> <span>{calc.tempoMinimoExigidoDias}</span></div>
+             <div className="flex justify-between text-blue-600 font-bold border-t border-slate-200 pt-1"><span>Devido:</span> <span>{calc.pedagioApurado}</span></div>
+          </MemorySection>
+        </div>
+      </section>
+
+      {/* Detalhamento de Regras */}
+      <section className="space-y-3">
+        <h3 className="text-xs font-bold text-slate-700 flex items-center gap-2">
+          <Target className="w-3 h-3" /> Detalhamento por Regra
         </h3>
         {regras.map((regra, idx) => (
-          <div key={idx} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-            <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+          <div key={idx} className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+            <div className="px-3 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
               <div>
-                <h4 className="text-sm font-bold text-slate-800">{regra.nome}</h4>
-                <p className="text-[10px] text-slate-500 italic">{regra.descricao}</p>
+                <h4 className="text-xs font-bold text-slate-800">{regra.nome}</h4>
               </div>
-              <span className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase ${regra.cumpre ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${regra.cumpre ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                 {regra.cumpre ? 'Satisfeito' : 'Incompleto'}
               </span>
             </div>
-            <div className="p-4">
-              <table className="w-full text-[11px]">
-                <thead>
-                  <tr className="text-slate-400 uppercase text-[9px] border-b">
-                    <th className="text-left pb-2">Requisito</th>
-                    <th className="text-center pb-2">Exigido</th>
-                    <th className="text-center pb-2">Apurado</th>
-                    <th className="text-right pb-2">Status</th>
+            <div className="p-3 overflow-x-auto">
+              <table className="w-full text-[10px]">
+                <thead className="text-slate-400 uppercase text-[8px] border-b">
+                  <tr>
+                    <th className="text-left pb-1">Requisito</th>
+                    <th className="text-center pb-1">Exigido</th>
+                    <th className="text-center pb-1">Apurado</th>
+                    <th className="text-right pb-1">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {regra.requisitos.map((req, rIdx) => (
                     <tr key={rIdx}>
-                      <td className="py-2 text-slate-600">{req.label}</td>
-                      <td className="py-2 text-center font-bold text-slate-800">{req.esperado}</td>
-                      <td className={`py-2 text-center font-bold ${req.cumpre ? 'text-emerald-600' : 'text-rose-500'}`}>{req.atual}</td>
-                      <td className="py-2 text-right">{req.cumpre ? <CheckCircle className="w-3 h-3 text-emerald-400 ml-auto" /> : <XCircle className="w-3 h-3 text-rose-300 ml-auto" />}</td>
+                      <td className="py-1.5 text-slate-600">{req.label}</td>
+                      <td className="py-1.5 text-center font-bold text-slate-800">{req.esperado}</td>
+                      <td className={`py-1.5 text-center font-bold ${req.cumpre ? 'text-emerald-600' : 'text-rose-500'}`}>{req.atual}</td>
+                      <td className="py-1.5 text-right">{req.cumpre ? <CheckCircle className="w-3 h-3 text-emerald-400 ml-auto" /> : <XCircle className="w-3 h-3 text-rose-300 ml-auto" />}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -294,16 +251,9 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
         ))}
       </section>
 
-      <div className="p-5 bg-amber-50 rounded-xl border border-amber-200">
-        <h4 className="text-xs font-bold text-amber-800 mb-2 uppercase tracking-wider">Aviso de Aposentadoria Compulsória</h4>
-        <p className="text-[11px] leading-relaxed text-amber-700">
-          O servidor completará 75 anos de idade na data de <strong>{calc.data75Anos}</strong>. Após essa idade o servidor é obrigado a se afastar, independentemente de ter cumprido os demais requisitos previstos em lei para aposentar-se. A unidade deverá considerar a data de aniversário dos 75 anos, como data do final do efetivo exercício, sendo a vigência no dia imediatamente seguinte ao aniversário.
-        </p>
-      </div>
-
-      <div className="no-print flex justify-center py-4">
-        <button onClick={handlePrint} className="bg-slate-800 text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-slate-900 transition flex items-center gap-2 shadow-lg">
-          <Printer className="w-4 h-4" /> Imprimir Relatório Oficial
+      <div className="no-print flex justify-center pt-4">
+        <button onClick={handlePrint} className="bg-slate-800 text-white px-6 py-2 rounded-lg font-bold text-xs hover:bg-slate-900 transition flex items-center gap-2 shadow-lg">
+          <Printer className="w-3 h-3" /> Imprimir Relatório Oficial
         </button>
       </div>
     </div>
