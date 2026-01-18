@@ -1,6 +1,27 @@
 
 import { parseISO } from '../calculoDatas';
 
+/**
+ * LÓGICA DE PONTUAÇÃO PMMG:
+ * A pontuação é a soma da idade (em dias) com o tempo de contribuição (em dias).
+ * O resultado final é expresso em anos inteiros (divisão por 365).
+ */
+
+/**
+ * Realiza o cálculo matemático da pontuação.
+ * @param idadeDias Total de dias de idade do servidor.
+ * @param tempoContribDias Total de dias de contribuição (líquido).
+ * @returns Objeto com a soma total em dias e o valor inteiro em pontos (anos).
+ */
+export const calcularPontuacao = (idadeDias: number, tempoContribDias: number) => {
+  const pontuacaoTotalDias = idadeDias + tempoContribDias;
+  const pontuacaoInteira = Math.floor(pontuacaoTotalDias / 365);
+  return { pontuacaoTotalDias, pontuacaoInteira };
+};
+
+/**
+ * Retorna a meta de pontos para a Regra Geral, que progride anualmente.
+ */
 export const getMetaPontosGeral = (sexo: string, dataSimulacao: Date): { pontos: number; label: string } => {
   const t = dataSimulacao.getTime();
   if (sexo === 'Masculino') {
@@ -16,12 +37,15 @@ export const getMetaPontosGeral = (sexo: string, dataSimulacao: Date): { pontos:
   }
 };
 
+/**
+ * Retorna a meta de pontos para a Regra de Professor (PEBPM).
+ */
 export const getMetaPontosProfessor = (sexo: string, dataSimulacao: Date): { pontos: number; label: string } => {
   const currentYear = dataSimulacao.getFullYear();
   const idx = Math.max(0, currentYear - 2021);
   
-  const ptsM = [92, 93, 94, 95, 96, 97, 98, 99, 100]; // Limita em 100
-  const ptsF = [81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92]; // Limita em 92
+  const ptsM = [92, 93, 94, 95, 96, 97, 98, 99, 100]; 
+  const ptsF = [81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92]; 
 
   if (sexo === 'Masculino') {
     const val = ptsM[Math.min(idx, ptsM.length - 1)];

@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { FormState, Averbação, Desconto, TipoServidor, Sexo } from '../types';
-import { Plus, Trash2, Calendar, User, Briefcase, CheckCircle2, MinusCircle, Calculator, Info, History, Star, ShieldAlert } from 'lucide-react';
-import { parseISO, calculatePMMGPeriod, formatDaysToYMD } from '../utils/calculoDatas';
+import { Plus, Trash2, Calendar, User, Briefcase, CheckCircle2, MinusCircle, Calculator, Info, History, Star, Timer, FileSearch } from 'lucide-react';
+import { parseISO, calculatePMMGPeriod, formatDaysToYMD, diffInDays, formatDateBR } from '../utils/calculoDatas';
 import { apurarTemposBasicos } from '../utils/calculators/temposBasicos';
 import { calcularPedagio50 } from '../utils/calculators/pedagio';
+import { calcularPontuacao } from '../utils/calculators/pontos';
 
 interface Props {
   formData: FormState;
@@ -140,6 +141,150 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
     setFormData(prev => ({ ...prev, descontos: prev.descontos.filter(d => d.id !== id) }));
   };
 
+  const openTechnicalDetails = () => {
+    if (!formData.dataSimulacao || !formData.dataNascimento || !formData.dataInclusaoPMMG || !formData.sexo || !formData.tipoServidor) {
+       alert("Preencha os dados básicos antes de visualizar o detalhamento técnico.");
+       return;
+    }
+
+    const dNasc = parseISO(formData.dataNascimento);
+    const dSim = parseISO(formData.dataSimulacao);
+    const dInc = parseISO(formData.dataInclusaoPMMG);
+
+    const idadePMMG = calculatePMMGPeriod(dNasc, dSim);
+    const tempoCasaPMMG = calculatePMMGPeriod(dInc, dSim);
+    
+    const tempos = apurarTemposBasicos(formData);
+    const { pontuacaoTotalDias, pontuacaoInteira } = calcularPontuacao(tempos.idadeDias, tempos.tempoContribTotal);
+    const isProfessor = formData.tipoServidor === 'PEBPM';
+    const isHomem = formData.sexo === 'Masculino';
+    const metaAnos = isProfessor ? (isHomem ? 30 : 25) : (isHomem ? 35 : 30);
+    const metaDias = metaAnos * 365;
+    const infoPedagio = calcularPedagio50(dInc, metaDias);
+
+    const auditData = [
+      {
+        tipo: "Cálculo da Idade",
+        resultado: `${tempos.idadeDias.toLocaleString()} dias`,
+        calculo: `(${idadePMMG.anos} anos * 365) + ${idadePMMG.diasResiduais} dias`,
+        explicacao: `Calculado de ${formatDateBR(dNasc)} até ${formatDateBR(dSim)}. Segue a regra PMMG onde anos completos valem 365 dias, somados aos dias residuais após o último aniversário.`
+      },
+      {
+        tipo: "Tempo de Serviço PMMG",
+        resultado: `${tempos.tempoServicoPMMGDias.toLocaleString()} dias`,
+        calculo: `(${tempoCasaPMMG.anos} anos * 365) + ${tempoCasaPMMG.diasResiduais} dias`,
+        explicacao: `Tempo bruto na corporação desde a inclusão (${formatDateBR(dInc)}) até a simulação.`
+      },
+      {
+        tipo: "Tempo Averbado",
+        resultado: `${tempos.totalTempoAverbado.toLocaleString()} dias`,
+        calculo: formData.averbacoes.length > 0 
+          ? formData.averbacoes.map(av => `(${av.anos}*365+${av.dias})`).join(" + ")
+          : "0 (nenhum registro)",
+        explicacao: `Soma das averbações externas informadas. Cada ano averbado é convertido em 365 dias conforme estatuto.`
+      },
+      {
+        tipo: "Tempo Descontado",
+        resultado: `${tempos.totalTempoDescontado.toLocaleString()} dias`,
+        calculo: formData.descontos.length > 0
+          ? formData.descontos.map(d => d.dias).join(" + ")
+          : "0 (nenhum registro)",
+        explicacao: `Total de dias a serem subtraídos do tempo de contribuição (afastamentos, LIP, faltas).`
+      },
+      {
+        tipo: "Contribuição Líquida",
+        resultado: `${tempos.tempoContribTotal.toLocaleString()} dias`,
+        calculo: `(${tempos.tempoServicoPMMGDias} + ${tempos.totalTempoAverbado}) - ${tempos.totalTempoDescontado}`,
+        explicacao: `Fórmula fundamental: (Tempo PMMG + Averbações) - Descontos. Base para verificação de metas.`
+      },
+      {
+        tipo: "Cálculo de Pontos",
+        resultado: `${pontuacaoInteira} pontos`,
+        calculo: `(${tempos.idadeDias} + ${tempos.tempoContribTotal}) / 365`,
+        explicacao: `Soma da idade e contribuição em dias. O valor resultante é truncado (apenas parte inteira) para definir a pontuação.`
+      },
+      {
+        tipo: "Cálculo do Pedágio",
+        resultado: `${infoPedagio.pedagio.toLocaleString()} dias`,
+        calculo: `(${metaDias} - ${infoPedagio.tempoNoCorte}) * 0,5`,
+        explicacao: `Baseado no saldo faltante para a meta de ${metaAnos} anos na data da reforma (15/09/2020).`
+      }
+    ];
+
+    const auditWindow = window.open('', '_blank');
+    if (!auditWindow) return;
+
+    auditWindow.document.write(`
+      <html>
+        <head>
+          <title>Auditoria de Cálculos - PMMG</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+          <style>
+            @media print { .no-print { display: none; } }
+            body { font-family: 'Inter', sans-serif; }
+          </style>
+        </head>
+        <body class="p-4 md:p-10 bg-slate-100 text-slate-900">
+          <div class="max-w-6xl mx-auto bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
+            <header class="flex justify-between items-start border-b border-slate-100 pb-8 mb-8">
+              <div>
+                <h1 class="text-3xl font-black text-slate-800 uppercase tracking-tight">Detalhamento Técnico dos Cálculos</h1>
+                <p class="text-sm text-blue-600 font-bold uppercase tracking-widest mt-1">Memória de Cálculo Auditável • Centro de Administração de Servidor Civil</p>
+                <div class="mt-4 flex gap-4 text-[10px] font-bold text-slate-400 uppercase">
+                  <span>Simulação em: ${formatDateBR(dSim)}</span>
+                  <span>Servidor: ${formData.tipoServidor}</span>
+                  <span>Sexo: ${formData.sexo}</span>
+                </div>
+              </div>
+              <button onclick="window.print()" class="no-print bg-blue-700 text-white px-6 py-3 rounded-lg font-black text-xs uppercase hover:bg-blue-800 transition-all shadow-lg hover:shadow-blue-200">Imprimir Auditoria</button>
+            </header>
+
+            <div class="overflow-x-auto">
+              <table class="w-full border-separate border-spacing-0">
+                <thead>
+                  <tr class="bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest">
+                    <th class="p-4 text-left border-b w-1/6 rounded-tl-lg">Tipo de Cálculo</th>
+                    <th class="p-4 text-center border-b w-1/6">Resultado</th>
+                    <th class="p-4 text-left border-b w-2/6">Memorial (Cálculo Realizado)</th>
+                    <th class="p-4 text-left border-b w-2/6 rounded-tr-lg">Explicação Lógica</th>
+                  </tr>
+                </thead>
+                <tbody class="text-xs divide-y divide-slate-100">
+                  ${auditData.map(row => `
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                      <td class="p-4 font-black text-slate-700 bg-slate-50/20 border-r border-slate-100">${row.tipo}</td>
+                      <td class="p-4 text-center font-mono font-bold text-blue-700 border-r border-slate-100">${row.resultado}</td>
+                      <td class="p-4 font-mono text-indigo-600 bg-indigo-50/20 border-r border-slate-100 leading-relaxed">${row.calculo}</td>
+                      <td class="p-4 text-slate-500 leading-relaxed italic">${row.explicacao}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="mt-10 p-6 bg-amber-50 rounded-xl border border-amber-100 flex gap-4 items-start">
+              <div class="bg-amber-100 p-2 rounded-lg text-amber-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-amber-900 uppercase tracking-tight">Nota de Auditoria</h4>
+                <p class="text-xs text-amber-700 mt-1 leading-relaxed">
+                  Os cálculos acima baseiam-se na aritmética militar (estatutária), onde cada ano é contabilizado como 365 dias fixos para fins de equalização de metas de tempo de serviço e contribuição, independentemente de anos bissextos no calendário gregoriano.
+                </p>
+              </div>
+            </div>
+
+            <footer class="mt-12 pt-6 border-t border-slate-100 flex justify-between items-center text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+              <span>Relatório de Conferência Técnica - Auditoria 2.0</span>
+              <span>© Polícia Militar de Minas Gerais - DRH</span>
+            </footer>
+          </div>
+        </body>
+      </html>
+    `);
+    auditWindow.document.close();
+  };
+
   const renderIdadeCalculada = () => {
     if (!formData.dataNascimento || !formData.dataSimulacao) return null;
     const dNasc = parseISO(formData.dataNascimento);
@@ -180,22 +325,32 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
        );
     }
 
+    // Processamento de tempos e pontuação em tempo real
     const tempos = apurarTemposBasicos(formData);
+    const { pontuacaoTotalDias, pontuacaoInteira } = calcularPontuacao(tempos.idadeDias, tempos.tempoContribTotal);
+    
+    // Cálculo do Pedágio em tempo real
     const isProfessor = formData.tipoServidor === 'PEBPM';
     const isHomem = formData.sexo === 'Masculino';
-    const metaAnos = (isProfessor ? (isHomem ? 30 : 25) : (isHomem ? 35 : 30));
-    const metaTempoGeral = metaAnos * 365;
+    const metaAnos = isProfessor ? (isHomem ? 30 : 25) : (isHomem ? 35 : 30);
+    const metaDias = metaAnos * 365;
     const dInc = parseISO(formData.dataInclusaoPMMG);
-    const pedagioInfo = calcularPedagio50(dInc, metaTempoGeral);
-
+    const dSim = parseISO(formData.dataSimulacao);
+    const dCorte = parseISO('2020-09-15');
+    const infoPedagio = calcularPedagio50(dInc, metaDias);
+    
+    // Cálculo de dias cumpridos pós-reforma
+    const diasCumpridosPosCorte = dSim >= dCorte ? diffInDays(dCorte, dSim) : 0;
+    
     return (
       <section className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-inner space-y-6">
         <h2 className={sectionTitleClass}>
            <Calculator className="w-5 h-5" /> Detalhamento da Memória de Cálculo
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-            <h3 className="text-xs font-bold text-gray-500 uppercase mb-3 flex items-center gap-2">
+          {/* BLOCO 1: APURAÇÃO DE DIAS */}
+          <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <h3 className="text-xs font-bold text-gray-500 uppercase mb-3 px-1 flex items-center gap-2">
               <History className="w-4 h-4" /> 1. Apuração de Dias (Fórmula Oficial)
             </h3>
             <table className="w-full text-xs">
@@ -235,32 +390,82 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
               </tbody>
             </table>
           </div>
+
           <div className="space-y-6">
-            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-              <h3 className="text-xs font-bold text-gray-500 uppercase mb-3 flex items-center gap-2">
+            {/* BLOCO 2: CÁLCULO DE PONTOS - TABULAR */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+              <h3 className="text-xs font-bold text-gray-500 uppercase mb-3 px-1 flex items-center gap-2">
                 <Star className="w-4 h-4" /> 2. Cálculo de Pontos
               </h3>
-              <div className="text-xs space-y-2">
-                <div className="flex justify-between p-2 bg-gray-50 rounded">
-                  <span>Idade (em dias)</span>
-                  <span className="font-mono">{tempos.idadeDias.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between p-2 bg-gray-50 rounded">
-                  <span>Contribuição (em dias)</span>
-                  <span className="font-mono">{tempos.tempoContribTotal.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between p-2 border-t border-gray-200 font-bold text-gray-800 mt-2">
-                  <span>Soma Total (Dias)</span>
-                  <span>{tempos.pontuacaoTotalDias.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-amber-50 border border-amber-100 rounded mt-2">
-                  <span className="text-amber-800 font-bold uppercase">Pontuação Final (Anos Inteiros)</span>
-                  <div className="text-right">
-                     <span className="text-lg font-black text-amber-600">{tempos.pontuacaoInteira}</span>
-                     <span className="text-[9px] text-amber-500 block">({tempos.pontuacaoTotalDias} ÷ 365)</span>
-                  </div>
-                </div>
-              </div>
+              <table className="w-full text-xs">
+                <thead className="bg-gray-100 text-gray-600 font-bold border-b">
+                  <tr>
+                    <th className="p-2 text-left">Variável</th>
+                    <th className="p-2 text-right">Cálculo (Dias)</th>
+                    <th className="p-2 text-right">Conversão</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  <tr>
+                    <td className="p-2 text-gray-700">Idade</td>
+                    <td className="p-2 text-right font-mono">{tempos.idadeDias.toLocaleString()}</td>
+                    <td className="p-2 text-right text-gray-500">{tempos.idadeFormatada}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 text-gray-700">Contribuição</td>
+                    <td className="p-2 text-right font-mono">{tempos.tempoContribTotal.toLocaleString()}</td>
+                    <td className="p-2 text-right text-gray-500">{formatDaysToYMD(tempos.tempoContribTotal)}</td>
+                  </tr>
+                  <tr className="bg-amber-50 font-bold">
+                    <td className="p-2 text-amber-900">Soma Total (Pontos)</td>
+                    <td className="p-2 text-right text-amber-900 font-black text-sm">{pontuacaoInteira} pts</td>
+                    <td className="p-2 text-right text-amber-700">{formatDaysToYMD(pontuacaoTotalDias)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* BLOCO 3: DETALHAMENTO DO PEDÁGIO - TABULAR */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+              <h3 className="text-xs font-bold text-gray-500 uppercase mb-3 px-1 flex items-center gap-2">
+                <Timer className="w-4 h-4" /> 3. Cálculo do Pedágio (EC 104/2020)
+              </h3>
+              <table className="w-full text-xs">
+                <thead className="bg-gray-100 text-gray-600 font-bold border-b">
+                  <tr>
+                    <th className="p-2 text-left">Variável</th>
+                    <th className="p-2 text-right">Cálculo (Dias)</th>
+                    <th className="p-2 text-right">Conversão</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  <tr>
+                    <td className="p-2 text-gray-700">Meta ({metaAnos} anos)</td>
+                    <td className="p-2 text-right font-mono">{metaDias.toLocaleString()}</td>
+                    <td className="p-2 text-right text-gray-500">{metaAnos} anos</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 text-gray-700">Tempo no Corte (2020)</td>
+                    <td className="p-2 text-right font-mono text-blue-600">{infoPedagio.tempoNoCorte.toLocaleString()}</td>
+                    <td className="p-2 text-right text-gray-500">{formatDaysToYMD(infoPedagio.tempoNoCorte)}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 text-gray-700">Saldo no Corte</td>
+                    <td className="p-2 text-right font-mono text-orange-600">{infoPedagio.saldoNoCorte.toLocaleString()}</td>
+                    <td className="p-2 text-right text-gray-500">{formatDaysToYMD(infoPedagio.saldoNoCorte)}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 text-emerald-800 font-bold">Cumprido Pós-Reforma</td>
+                    <td className="p-2 text-right font-mono text-emerald-600">{diasCumpridosPosCorte.toLocaleString()}</td>
+                    <td className="p-2 text-right text-emerald-500 font-medium">{formatDaysToYMD(diasCumpridosPosCorte)}</td>
+                  </tr>
+                  <tr className="bg-indigo-50 font-bold">
+                    <td className="p-2 text-indigo-900">Pedágio Devido (50%)</td>
+                    <td className="p-2 text-right text-indigo-900 font-black text-sm">{infoPedagio.pedagio.toLocaleString()}</td>
+                    <td className="p-2 text-right text-indigo-700">{formatDaysToYMD(infoPedagio.pedagio)}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -447,7 +652,17 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
       </section>
 
       {renderDetalhamento()}
-      <button onClick={onCalculate} className="w-full bg-blue-800 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-900 transition-all shadow-lg hover:shadow-xl">Gerar Simulação de Aposentadoria</button>
+      
+      <div className="flex flex-col gap-4">
+        <button 
+          onClick={openTechnicalDetails} 
+          className="flex items-center justify-center gap-2 text-blue-600 hover:text-blue-800 font-bold text-sm transition-colors py-2"
+        >
+          <FileSearch className="w-4 h-4" />
+          Ver Detalhamento Técnico dos Cálculos
+        </button>
+        <button onClick={onCalculate} className="w-full bg-blue-800 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-900 transition-all shadow-lg hover:shadow-xl">Gerar Simulação de Aposentadoria</button>
+      </div>
     </div>
   );
 };

@@ -73,6 +73,14 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
     </div>
   );
 
+  const ResultRow = ({ label, days, formatted, colorClass = "text-slate-700" }: { label: string, days: number | string, formatted: string, colorClass?: string }) => (
+    <div className="w-full grid grid-cols-12 gap-1 items-center px-1 py-1 border-b border-slate-50 last:border-0">
+      <div className="col-span-3 text-[8px] text-slate-400 uppercase font-black truncate">{label}</div>
+      <div className="col-span-4 text-right text-[9px] font-mono font-bold text-slate-500">{typeof days === 'number' ? days.toLocaleString() : days} d</div>
+      <div className={`col-span-5 text-right text-[9px] font-bold ${colorClass}`}>{formatted}</div>
+    </div>
+  );
+
   return (
     <div id="printable-report" className="space-y-4 animate-in fade-in duration-700">
       
@@ -128,49 +136,38 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
         </div>
       </section>
 
-      {/* Grid de Cards de Resumo */}
-      <div className="rounded-xl border border-blue-200 shadow-sm bg-white overflow-hidden grid grid-cols-3 divide-x divide-blue-100">
-        <SummaryCard title="Tempos" icon={<Calculator className="w-3 h-3 text-slate-400" />}>
-          <div className="w-full space-y-2 text-center">
-            <div className="flex justify-between items-baseline px-2">
-              <span className="text-[10px] text-slate-500 uppercase font-bold">Idade</span>
-              <div className="text-right leading-none">
-                <div className="text-xs font-bold text-slate-700">{calc.idadeFormatada}</div>
-                <div className="text-[9px] text-slate-400">({calc.idadeDias.toLocaleString()} dias)</div>
-              </div>
+      {/* Grid de Cards de Resumo Padronizados com 3 Áreas: Label | Dias | Conversão */}
+      <div className="rounded-xl border border-blue-200 shadow-sm bg-white overflow-hidden grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-blue-100">
+        <SummaryCard title="Tempos Básicos" icon={<Calculator className="w-3 h-3 text-slate-400" />}>
+          <div className="w-full flex flex-col justify-center gap-1">
+            <ResultRow label="Idade" days={calc.idadeDias} formatted={calc.idadeFormatada} />
+            <ResultRow label="Contrib." days={calc.tempoContribuicaoTotal} formatted={formatDaysToYMD(calc.tempoContribuicaoTotal)} />
+          </div>
+        </SummaryCard>
+        
+        <SummaryCard title="Pontuação" icon={<Star className="w-3 h-3 text-amber-500" />} bgColor="bg-slate-50/50">
+          <div className="w-full flex flex-col justify-center items-center px-1">
+            <div className="w-full mb-2">
+               <ResultRow label="Soma" days={calc.idadeDias + calc.tempoContribuicaoTotal} formatted={`${calc.pontuacao} pts`} colorClass="text-amber-600 font-black" />
             </div>
-            <div className="flex justify-between items-baseline px-2">
-              <span className="text-[10px] text-slate-500 uppercase font-bold">Contrib.</span>
-              <div className="text-right leading-none">
-                <div className="text-xs font-bold text-slate-700">{formatDaysToYMD(calc.tempoContribuicaoTotal)}</div>
-                <div className="text-[9px] text-slate-400">({calc.tempoContribuicaoTotal.toLocaleString()} dias)</div>
-              </div>
+            <div className="w-full bg-white rounded-lg py-1 px-1 text-[8px] text-center text-slate-500 font-bold uppercase border border-slate-200 shadow-inner">
+              Faltam {365 - calc.pontuacaoSaldoDias} d para o próximo ponto
             </div>
           </div>
         </SummaryCard>
-        <SummaryCard title="Pontos" icon={<Star className="w-3 h-3 text-amber-500" />} bgColor="bg-slate-50/50">
-          <div className="text-center">
-            <span className="text-3xl font-black text-slate-700 tracking-tighter leading-none">{calc.pontuacao}</span>
-            <div className="mt-1.5 w-full bg-white rounded-lg py-1 px-1 text-[9px] text-center text-slate-500 font-bold uppercase border border-slate-200">
-              {365 - calc.pontuacaoSaldoDias} d p/ próx.
-            </div>
-          </div>
-        </SummaryCard>
+        
         <SummaryCard title="Pedágio (50%)" icon={<Timer className="w-3 h-3 text-indigo-500" />}>
-          <div className="text-center">
-            <span className="text-2xl font-black text-indigo-600 leading-none">{calc.pedagioApurado.toLocaleString()}</span>
-            <p className="text-[9px] font-bold text-indigo-300 uppercase">Dias Devidos</p>
-            <div className="mt-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 inline-block">
-              {formatDaysToYMD(calc.pedagioApurado)}
-            </div>
+          <div className="w-full flex flex-col justify-center gap-1">
+            <ResultRow label="Devido" days={calc.pedagioApurado} formatted={formatDaysToYMD(calc.pedagioApurado)} colorClass="text-indigo-600" />
+            <ResultRow label="Cumprido" days={calc.diasCumpridosPosCorte} formatted={formatDaysToYMD(calc.diasCumpridosPosCorte)} colorClass="text-emerald-600" />
           </div>
         </SummaryCard>
       </div>
 
-      {/* Memória de Cálculo */}
+      {/* Memória de Cálculo Resumida */}
       <section className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
         <h3 className="text-xs font-bold text-slate-800 flex items-center gap-2 mb-3"><Info className="w-3 h-3 text-blue-500" /> Memória Resumida</h3>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <MemorySection title="Contribuição" icon={<CalendarDays className="w-3 h-3" />}>
              <div className="flex justify-between"><span>PMMG:</span> <span className="font-bold">{calc.tempoEfetivoCivilPMMG}</span></div>
              <div className="flex justify-between text-blue-600"><span>Averba:</span> <span>+{calc.totalTempoAverbado}</span></div>

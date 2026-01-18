@@ -64,4 +64,5 @@ export interface CalculosFinais {
   tempoEfetivo15092020: number;
   tempoMinimoExigidoDias: number;
   saldoFaltanteCorte: number;
+  diasCumpridosPosCorte: number;
 }
