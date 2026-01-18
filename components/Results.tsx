@@ -2,7 +2,7 @@
 import React from 'react';
 import { FormState, CalculosFinais, RegraResultado, Requisito } from '../types';
 import { CheckCircle, XCircle, Printer, Calculator, Star, Target, Info, Timer, CalendarDays, FileText } from 'lucide-react';
-import { formatDaysToYMD, formatDateBR, parseISO } from '../utils/dateHelpers';
+import { formatDaysToYMD, formatDateBR, parseISO } from '../utils/calculoDatas';
 
 interface Props {
   data: FormState;

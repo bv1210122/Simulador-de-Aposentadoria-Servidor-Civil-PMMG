@@ -1,5 +1,5 @@
 
-import { parseISO } from '../dateHelpers';
+import { parseISO } from '../calculoDatas';
 
 export const getMetaPontosGeral = (sexo: string, dataSimulacao: Date): { pontos: number; label: string } => {
   const t = dataSimulacao.getTime();

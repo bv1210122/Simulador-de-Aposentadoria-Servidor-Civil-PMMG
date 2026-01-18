@@ -1,5 +1,5 @@
 
-import { diffInDays, parseISO } from '../dateHelpers';
+import { diffInDays, parseISO } from '../calculoDatas';
 
 export const calcularPedagio50 = (dataInclusao: Date, metaDias: number): { 
   tempoNoCorte: number; 

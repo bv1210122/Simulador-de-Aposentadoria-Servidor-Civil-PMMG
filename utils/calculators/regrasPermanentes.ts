@@ -1,6 +1,6 @@
 
 import { FormState, RegraResultado } from '../../types';
-import { formatDateBR } from '../dateHelpers';
+import { formatDateBR } from '../calculoDatas';
 import { createReq } from './helper';
 
 export const avaliarRegrasPermanentes = (
