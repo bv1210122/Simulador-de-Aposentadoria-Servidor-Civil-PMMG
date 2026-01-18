@@ -6,10 +6,19 @@ import { FormState, CalculosFinais, RegraResultado } from './types';
 import { calculateResults } from './utils/calculator';
 import { ShieldCheck } from 'lucide-react';
 
+// Função para obter data local formatada YYYY-MM-DD
+const getLocalDateString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const day = now.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const initialForm: FormState = {
   tipoServidor: '',
   sexo: '',
-  dataSimulacao: new Date().toISOString().split('T')[0],
+  dataSimulacao: getLocalDateString(),
   dataNascimento: '',
   dataInclusaoPMMG: '',
   averbacoes: [],
@@ -23,7 +32,6 @@ const initialForm: FormState = {
 
 const App: React.FC = () => {
   const [formData, setFormData] = useState<FormState>(initialForm);
-  // Fix: Removed stray character '回' and ensured the results state type is correctly defined as either the result object or null.
   const [results, setResults] = useState<{ calc: CalculosFinais; regras: RegraResultado[] } | null>(null);
 
   const handleCalculate = () => {

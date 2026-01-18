@@ -1,12 +1,13 @@
 
-import { diffInDays } from '../dateHelpers';
+import { diffInDays, parseISO } from '../dateHelpers';
 
 export const calcularPedagio50 = (dataInclusao: Date, metaDias: number): { 
   tempoNoCorte: number; 
   saldoNoCorte: number; 
   pedagio: number; 
 } => {
-  const dCorte = new Date('2020-09-15T00:00:00');
+  // Garantir que a data de corte seja interpretada como UTC
+  const dCorte = parseISO('2020-09-15');
   const tempoNoCorte = dataInclusao <= dCorte ? diffInDays(dataInclusao, dCorte) : 0;
   const saldoNoCorte = Math.max(0, metaDias - tempoNoCorte);
   const pedagio = Math.ceil(saldoNoCorte * 0.5);

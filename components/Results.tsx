@@ -101,8 +101,6 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
             </h3>
         </div>
         <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            {/* Col 1: Pessoal */}
             <div>
                 <h4 className="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider border-b border-slate-200 pb-1">Perfil e Datas</h4>
                 <DataSummaryRow label="Tipo de Servidor" value={data.tipoServidor} />
@@ -111,20 +109,14 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
                 <DataSummaryRow label="Data Inclusão" value={formatDateStr(data.dataInclusaoPMMG)} />
                 <DataSummaryRow label="Data Simulação" value={formatDateStr(data.dataSimulacao)} highlight />
             </div>
-
-            {/* Col 2: Carreira */}
             <div>
                 <h4 className="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider border-b border-slate-200 pb-1">Marcos de Carreira</h4>
                 <DataSummaryRow label="Ingresso até 2003" value={data.ingressouAte2003 ? "Sim" : "Não"} />
                 <DataSummaryRow label="Ingresso 2004-2020" value={data.ingressouEntre2003e2020 ? "Sim" : "Não"} />
                 <DataSummaryRow label="10 Anos Svc. Público" value={data.dezAnosServicoPublico ? "Sim" : "Não"} />
                 <DataSummaryRow label="5 Anos Cargo Efetivo" value={data.cincoAnosCargoEfetivo ? "Sim" : "Não"} />
-                {data.tipoServidor === 'PEBPM' && (
-                    <DataSummaryRow label="Tempo de Regência" value={`${data.tempoRegencia} anos`} highlight />
-                )}
+                {data.tipoServidor === 'PEBPM' && <DataSummaryRow label="Tempo de Regência" value={`${data.tempoRegencia} anos`} highlight />}
             </div>
-
-            {/* Col 3: Ajustes */}
             <div>
                 <h4 className="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider border-b border-slate-200 pb-1">Tempos Adicionais</h4>
                 <DataSummaryRow label="Registros Averbados" value={data.averbacoes.length} />
@@ -136,20 +128,18 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
         </div>
       </section>
 
-      {/* Grid de Cards de Resumo - Compacto e Lado a Lado */}
+      {/* Grid de Cards de Resumo */}
       <div className="rounded-xl border border-blue-200 shadow-sm bg-white overflow-hidden grid grid-cols-3 divide-x divide-blue-100">
-        
-        {/* Tempos Apurados */}
         <SummaryCard title="Tempos" icon={<Calculator className="w-3 h-3 text-slate-400" />}>
-          <div className="w-full space-y-2">
-            <div className="flex justify-between items-baseline">
+          <div className="w-full space-y-2 text-center">
+            <div className="flex justify-between items-baseline px-2">
               <span className="text-[10px] text-slate-500 uppercase font-bold">Idade</span>
               <div className="text-right leading-none">
                 <div className="text-xs font-bold text-slate-700">{calc.idadeFormatada}</div>
                 <div className="text-[9px] text-slate-400">({calc.idadeDias.toLocaleString()} dias)</div>
               </div>
             </div>
-            <div className="flex justify-between items-baseline">
+            <div className="flex justify-between items-baseline px-2">
               <span className="text-[10px] text-slate-500 uppercase font-bold">Contrib.</span>
               <div className="text-right leading-none">
                 <div className="text-xs font-bold text-slate-700">{formatDaysToYMD(calc.tempoContribuicaoTotal)}</div>
@@ -158,24 +148,18 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
             </div>
           </div>
         </SummaryCard>
-
-        {/* Pontuação */}
         <SummaryCard title="Pontos" icon={<Star className="w-3 h-3 text-amber-500" />} bgColor="bg-slate-50/50">
           <div className="text-center">
             <span className="text-3xl font-black text-slate-700 tracking-tighter leading-none">{calc.pontuacao}</span>
-            <div className="mt-1.5 w-full bg-white rounded-lg py-1 px-1 text-[9px] text-center text-slate-500 font-bold uppercase tracking-tight border border-slate-200">
-              Faltam {365 - calc.pontuacaoSaldoDias} dias
+            <div className="mt-1.5 w-full bg-white rounded-lg py-1 px-1 text-[9px] text-center text-slate-500 font-bold uppercase border border-slate-200">
+              {365 - calc.pontuacaoSaldoDias} d p/ próx.
             </div>
           </div>
         </SummaryCard>
-
-        {/* Pedágio */}
         <SummaryCard title="Pedágio (50%)" icon={<Timer className="w-3 h-3 text-indigo-500" />}>
           <div className="text-center">
-            <span className="text-2xl font-black text-indigo-600 tracking-tighter leading-none">
-              {calc.pedagioApurado.toLocaleString()}
-            </span>
-            <p className="text-[9px] font-bold text-indigo-300 uppercase tracking-wide">Dias</p>
+            <span className="text-2xl font-black text-indigo-600 leading-none">{calc.pedagioApurado.toLocaleString()}</span>
+            <p className="text-[9px] font-bold text-indigo-300 uppercase">Dias Devidos</p>
             <div className="mt-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 inline-block">
               {formatDaysToYMD(calc.pedagioApurado)}
             </div>
@@ -185,9 +169,7 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
 
       {/* Memória de Cálculo */}
       <section className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-        <h3 className="text-xs font-bold text-slate-800 flex items-center gap-2 mb-3">
-          <Info className="w-3 h-3 text-blue-500" /> Memória Resumida
-        </h3>
+        <h3 className="text-xs font-bold text-slate-800 flex items-center gap-2 mb-3"><Info className="w-3 h-3 text-blue-500" /> Memória Resumida</h3>
         <div className="grid grid-cols-3 gap-3">
           <MemorySection title="Contribuição" icon={<CalendarDays className="w-3 h-3" />}>
              <div className="flex justify-between"><span>PMMG:</span> <span className="font-bold">{calc.tempoEfetivoCivilPMMG}</span></div>
@@ -195,13 +177,11 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
              <div className="flex justify-between text-rose-500"><span>Desc:</span> <span>-{calc.totalTempoDescontado}</span></div>
              <div className="border-t border-slate-200 pt-1 flex justify-between font-bold text-slate-800"><span>Líq:</span> <span>{calc.tempoContribuicaoTotal}</span></div>
           </MemorySection>
-
           <MemorySection title="Pontuação">
              <div className="flex justify-between"><span>Idade:</span> <span>{calc.idadeDias}</span></div>
              <div className="flex justify-between"><span>Tempo:</span> <span>{calc.tempoContribuicaoTotal}</span></div>
              <div className="border-t border-slate-200 pt-1 flex justify-between font-bold text-indigo-600"><span>Total:</span> <span>{calc.pontuacao}</span></div>
           </MemorySection>
-
           <MemorySection title="Pedágio">
              <div className="flex justify-between"><span>Corte:</span> <span>{calc.tempoEfetivo15092020}</span></div>
              <div className="flex justify-between"><span>Meta:</span> <span>{calc.tempoMinimoExigidoDias}</span></div>
@@ -212,15 +192,11 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
 
       {/* Detalhamento de Regras */}
       <section className="space-y-3">
-        <h3 className="text-xs font-bold text-slate-700 flex items-center gap-2">
-          <Target className="w-3 h-3" /> Detalhamento por Regra
-        </h3>
+        <h3 className="text-xs font-bold text-slate-700 flex items-center gap-2"><Target className="w-3 h-3" /> Detalhamento por Regra</h3>
         {regras.map((regra, idx) => (
           <div key={idx} className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
             <div className="px-3 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-              <div>
-                <h4 className="text-xs font-bold text-slate-800">{regra.nome}</h4>
-              </div>
+              <h4 className="text-xs font-bold text-slate-800">{regra.nome}</h4>
               <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${regra.cumpre ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                 {regra.cumpre ? 'Satisfeito' : 'Incompleto'}
               </span>

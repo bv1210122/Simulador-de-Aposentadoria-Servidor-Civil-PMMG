@@ -1,60 +1,74 @@
 
-export const parseISO = (dateStr: string) => new Date(dateStr + 'T00:00:00');
+export const parseISO = (dateStr: string) => new Date(dateStr + 'T00:00:00Z');
 
 export const diffInDays = (d1: Date, d2: Date): number => {
-  // Converte para UTC para garantir precisão absoluta no cálculo de dias civis
-  const utc1 = Date.UTC(d1.getFullYear(), d1.getMonth(), d1.getDate());
-  const utc2 = Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate());
+  const utc1 = Date.UTC(d1.getUTCFullYear(), d1.getUTCMonth(), d1.getUTCDate());
+  const utc2 = Date.UTC(d2.getUTCFullYear(), d2.getUTCMonth(), d2.getUTCDate());
   
-  // Para tempo de serviço, se a data final for anterior à inicial, o tempo é zero
   if (utc1 > utc2) return 0;
   
   const diffTime = utc2 - utc1;
-  // A soma de +1 torna a contagem INCLUSIVA (Padrão PMMG/Serviço Público)
+  // +1 para tornar a contagem inclusiva (ex: de 02/12 a 02/12 = 1 dia)
   return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
 };
 
 export const addDays = (date: Date, days: number): Date => {
   const result = new Date(date);
-  result.setDate(result.getDate() + days);
+  result.setUTCDate(result.getUTCDate() + days);
   return result;
 };
 
 export const formatDateBR = (date: Date): string => {
-  return date.toLocaleDateString('pt-BR');
+  const d = date.getUTCDate().toString().padStart(2, '0');
+  const m = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+  const y = date.getUTCFullYear();
+  return `${d}/${m}/${y}`;
 };
 
 /**
- * Calcula a idade em dias conforme a regra específica solicitada:
- * 1. Anos Completos * 365
- * 2. Dias residuais do dia seguinte ao último aniversário até a simulação (inclusivo)
+ * Lógica Oficial PMMG:
+ * 1. Calcula anos completos até o último aniversário.
+ * 2. Calcula dias residuais do DIA POSTERIOR ao último aniversário até a DATA FINAL (inclusivo).
+ * 3. Total em dias = (Anos * 365) + Dias Residuais.
  */
-export const calculateAgeDaysSpecific = (nascimento: Date, simulacao: Date): { totalDias: number; formatada: string } => {
-  const diaNasc = nascimento.getDate();
-  const mesNasc = nascimento.getMonth();
+export const calculatePMMGPeriod = (start: Date, end: Date): { totalDias: number; anos: number; diasResiduais: number; formatada: string } => {
+  const diaInic = start.getUTCDate();
+  const mesInic = start.getUTCMonth();
   
-  let anoAniversario = simulacao.getFullYear();
-  let dataUltimoAniversario = new Date(anoAniversario, mesNasc, diaNasc);
+  let anoUltimoAniv = end.getUTCFullYear();
+  let dataUltimoAniv = new Date(Date.UTC(anoUltimoAniv, mesInic, diaInic));
 
-  if (dataUltimoAniversario > simulacao) {
-    anoAniversario--;
-    dataUltimoAniversario = new Date(anoAniversario, mesNasc, diaNasc);
+  // Se o aniversário deste ano ainda não aconteceu, volta para o ano anterior
+  if (dataUltimoAniv > end) {
+    anoUltimoAniv--;
+    dataUltimoAniv = new Date(Date.UTC(anoUltimoAniv, mesInic, diaInic));
   }
 
-  const anosCompletos = anoAniversario - nascimento.getFullYear();
+  const anosCompletos = anoUltimoAniv - start.getUTCFullYear();
+  const diasBaseAnos = anosCompletos * 365;
   
-  let diasExtras = 0;
-  if (dataUltimoAniversario.getTime() < simulacao.getTime()) {
-    const diaPosteriorAoAniversario = addDays(dataUltimoAniversario, 1);
-    diasExtras = diffInDays(diaPosteriorAoAniversario, simulacao);
+  let diasResiduais = 0;
+  if (end.getTime() > dataUltimoAniv.getTime()) {
+    // A regra exige contar do dia posterior ao aniversário até a data final, inclusive.
+    const diaPosterior = addDays(dataUltimoAniv, 1);
+    diasResiduais = diffInDays(diaPosterior, end);
+  } else {
+    // Se a data final é o próprio aniversário, os dias residuais são 0.
+    diasResiduais = 0;
   }
 
-  const totalDias = (anosCompletos * 365) + diasExtras;
+  const totalDias = diasBaseAnos + diasResiduais;
   
   return {
     totalDias,
-    formatada: `${anosCompletos} anos e ${diasExtras} dias`
+    anos: anosCompletos,
+    diasResiduais,
+    formatada: `${anosCompletos} anos e ${diasResiduais} dias`
   };
+};
+
+export const calculateAgeDaysSpecific = (nascimento: Date, simulacao: Date) => {
+  return calculatePMMGPeriod(nascimento, simulacao);
 };
 
 export const formatDaysToYMD = (totalDays: number): string => {

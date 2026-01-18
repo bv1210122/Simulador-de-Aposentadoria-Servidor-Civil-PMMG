@@ -1,6 +1,6 @@
 
 import { FormState } from '../../types';
-import { diffInDays, calculateAgeDaysSpecific, parseISO } from '../dateHelpers';
+import { calculatePMMGPeriod, parseISO } from '../dateHelpers';
 
 export interface TemposBasicosResultado {
   idadeDias: number;
@@ -20,32 +20,29 @@ export const apurarTemposBasicos = (data: FormState): TemposBasicosResultado => 
   const dNasc = parseISO(data.dataNascimento);
   const dInc = parseISO(data.dataInclusaoPMMG);
 
-  // 1. Idade
-  const { totalDias: idadeDias, formatada: idadeFormatada } = calculateAgeDaysSpecific(dNasc, dSim);
-  const idadeAnos = Math.floor(idadeDias / 365);
+  // 1. Idade usando lógica PMMG
+  const idadeInfo = calculatePMMGPeriod(dNasc, dSim);
 
-  // 2. Tempo de Serviço Efetivo PMMG
-  const tempoServicoPMMGDias = diffInDays(dInc, dSim);
+  // 2. Tempo de Serviço Efetivo PMMG usando lógica PMMG
+  const tempoPMMGInfo = calculatePMMGPeriod(dInc, dSim);
 
   // 3. Totais de Averbações e Descontos
-  // Agora considera anos * 365 + dias
   const totalTempoAverbado = data.averbacoes.reduce((acc, av) => acc + (Number(av.anos) * 365) + Number(av.dias), 0);
-  
   const totalTempoDescontado = data.descontos.reduce((acc, desc) => acc + desc.dias, 0);
 
   // 4. Tempo de Contribuição Total (Líquido)
-  const tempoContribTotal = tempoServicoPMMGDias + totalTempoAverbado - totalTempoDescontado;
+  const tempoContribTotal = tempoPMMGInfo.totalDias + totalTempoAverbado - totalTempoDescontado;
   const tempoContribAnos = Math.floor(tempoContribTotal / 365);
 
   // 5. Base para Pontuação (Idade + Contribuição)
-  const pontuacaoTotalDias = idadeDias + tempoContribTotal;
+  const pontuacaoTotalDias = idadeInfo.totalDias + tempoContribTotal;
   const pontuacaoInteira = Math.floor(pontuacaoTotalDias / 365);
 
   return {
-    idadeDias,
-    idadeAnos,
-    idadeFormatada,
-    tempoServicoPMMGDias,
+    idadeDias: idadeInfo.totalDias,
+    idadeAnos: idadeInfo.anos,
+    idadeFormatada: idadeInfo.formatada,
+    tempoServicoPMMGDias: tempoPMMGInfo.totalDias,
     totalTempoAverbado,
     totalTempoDescontado,
     tempoContribTotal,
