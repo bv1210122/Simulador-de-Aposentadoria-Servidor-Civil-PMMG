@@ -88,7 +88,12 @@ const FormSection: React.FC<{ title: string, icon: React.ReactNode, children: Re
 const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+    let val: any = value;
+    if (type === 'checkbox') {
+      val = (e.target as HTMLInputElement).checked;
+    } else if (type === 'number') {
+      val = Number(value);
+    }
     setFormData(prev => ({ ...prev, [name]: val }));
   };
 
@@ -484,7 +489,7 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
   return (
     <div className="space-y-8 bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-100 no-print">
       <FormSection title="Dados Identificadores" icon={<User className="w-5 h-5" />}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <label className="text-xs font-bold text-gray-500 uppercase">Tipo de Servidor</label>
             <select name="tipoServidor" value={formData.tipoServidor} onChange={handleChange} className={inputClass}>
@@ -504,6 +509,20 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
               <option value="Feminino">Feminino</option>
             </select>
           </div>
+          {formData.tipoServidor === 'PEBPM' && (
+            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+              <label className="text-xs font-bold text-gray-500 uppercase">Tempo de Regência (Anos)</label>
+              <input
+                type="number"
+                name="tempoRegencia"
+                value={formData.tempoRegencia}
+                onChange={handleChange}
+                className={inputClass}
+                min="0"
+                placeholder="0"
+              />
+            </div>
+          )}
         </div>
       </FormSection>
 
