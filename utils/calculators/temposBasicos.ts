@@ -11,7 +11,9 @@ export interface TemposBasicosResultado {
   idadeFormatada: string;
   tempoServicoPMMGDias: number;
   totalTempoAverbado: number;
+  totalAverbadoAnterior: number;
   totalTempoDescontado: number;
+  totalDescontadoAnterior: number;
   tempoContribTotal: number;
   tempoContribAnos: number;
 }
@@ -32,7 +34,14 @@ export const apurarTemposBasicos = (data: FormState): TemposBasicosResultado => 
 
   // 3. Totais Externos (Averbações e Descontos)
   const totalTempoAverbado = data.averbacoes.reduce((acc, av) => acc + (Number(av.anos) * 365) + Number(av.dias), 0);
+  const totalAverbadoAnterior = data.averbacoes
+    .filter(av => av.anteriorReforma)
+    .reduce((acc, av) => acc + (Number(av.anos) * 365) + Number(av.dias), 0);
+
   const totalTempoDescontado = data.descontos.reduce((acc, desc) => acc + desc.dias, 0);
+  const totalDescontadoAnterior = data.descontos
+    .filter(desc => desc.anteriorReforma)
+    .reduce((acc, desc) => acc + desc.dias, 0);
 
   // 4. Tempo de Contribuição Líquido
   const tempoContribTotal = tempoPMMGInfo.totalDias + totalTempoAverbado - totalTempoDescontado;
@@ -44,7 +53,9 @@ export const apurarTemposBasicos = (data: FormState): TemposBasicosResultado => 
     idadeFormatada: idadeInfo.formatada,
     tempoServicoPMMGDias: tempoPMMGInfo.totalDias,
     totalTempoAverbado,
+    totalAverbadoAnterior,
     totalTempoDescontado,
+    totalDescontadoAnterior,
     tempoContribTotal,
     tempoContribAnos
   };

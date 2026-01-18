@@ -123,7 +123,7 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
       ...prev,
       averbacoes: [
         ...prev.averbacoes,
-        { id: crypto.randomUUID(), regime: '', origem: '', funcao: '', dataAverbacao: '', anos: 0, dias: 0 }
+        { id: crypto.randomUUID(), regime: '', origem: '', funcao: '', dataAverbacao: '', anos: 0, dias: 0, anteriorReforma: false }
       ]
     }));
   };
@@ -137,7 +137,7 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
       ...prev,
       descontos: [
         ...prev.descontos,
-        { id: crypto.randomUUID(), tipo: '', dias: 0 }
+        { id: crypto.randomUUID(), tipo: '', dias: 0, anteriorReforma: false }
       ]
     }));
   };
@@ -155,17 +155,28 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
     const dNasc = parseISO(formData.dataNascimento);
     const dSim = parseISO(formData.dataSimulacao);
     const dInc = parseISO(formData.dataInclusaoPMMG);
+    const dCorte = parseISO('2020-09-15');
 
     const idadePMMG = calculatePMMGPeriod(dNasc, dSim);
     const tempoCasaPMMG = calculatePMMGPeriod(dInc, dSim);
+    const tempoPMMGNoCorte = dInc <= dCorte ? diffInDays(dInc, dCorte) : 0;
     
     const tempos = apurarTemposBasicos(formData);
+    const tempoBaseNoCorte = tempoPMMGNoCorte + tempos.totalAverbadoAnterior - tempos.totalDescontadoAnterior;
+
     const { pontuacaoTotalDias, pontuacaoInteira } = calcularPontuacao(tempos.idadeDias, tempos.tempoContribTotal);
     const isProfessor = formData.tipoServidor === 'PEBPM';
     const isHomem = formData.sexo === 'Masculino';
     const metaAnos = isProfessor ? (isHomem ? 30 : 25) : (isHomem ? 35 : 30);
     const metaDias = metaAnos * 365;
-    const infoPedagio = calcularPedagio50(dInc, metaDias);
+    
+    // Fix: Providing all 4 arguments to calcularPedagio50 as required by its definition in utils/calculators/pedagio.ts
+    const infoPedagio = calcularPedagio50(
+      dInc,
+      tempos.totalTempoAverbado,
+      tempos.totalDescontadoAnterior,
+      metaDias
+    );
 
     const auditData = [
       {
@@ -186,7 +197,7 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
         calculo: formData.averbacoes.length > 0 
           ? formData.averbacoes.map(av => `(${av.anos}*365+${av.dias})`).join(" + ")
           : "0 (nenhum registro)",
-        explicacao: `Soma das averbações externas informadas. Cada ano averbado é convertido em 365 dias conforme estatuto.`
+        explicacao: `Soma das averbações externas informadas. (Anterior à Reforma: ${tempos.totalAverbadoAnterior.toLocaleString()} dias).`
       },
       {
         tipo: "Tempo Descontado",
@@ -194,7 +205,7 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
         calculo: formData.descontos.length > 0
           ? formData.descontos.map(d => d.dias).join(" + ")
           : "0 (nenhum registro)",
-        explicacao: `Total de dias a serem subtraídos do tempo de contribuição (afastamentos, LIP, faltas).`
+        explicacao: `Total de dias subtraídos. (Anterior à Reforma: ${tempos.totalDescontadoAnterior.toLocaleString()} dias).`
       },
       {
         tipo: "Contribuição Líquida",
@@ -211,8 +222,8 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
       {
         tipo: "Cálculo do Pedágio",
         resultado: `${infoPedagio.pedagio.toLocaleString()} dias`,
-        calculo: `(${metaDias} - ${infoPedagio.tempoNoCorte}) * 0,5`,
-        explicacao: `Baseado no saldo faltante para a meta de ${metaAnos} anos na data da reforma (15/09/2020).`
+        calculo: `(${metaDias} - ${tempoBaseNoCorte}) * 0,5`,
+        explicacao: `Baseado no saldo faltante para a meta de ${metaAnos} anos na data da reforma (15/09/2020), considerando tempo PMMG e averbações anteriores àquela data.`
       }
     ];
 
@@ -342,7 +353,16 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
     const dInc = parseISO(formData.dataInclusaoPMMG);
     const dSim = parseISO(formData.dataSimulacao);
     const dCorte = parseISO('2020-09-15');
-    const infoPedagio = calcularPedagio50(dInc, metaDias);
+    const tempoPMMGNoCorte = dInc <= dCorte ? diffInDays(dInc, dCorte) : 0;
+    const tempoBaseNoCorte = tempoPMMGNoCorte + tempos.totalAverbadoAnterior - tempos.totalDescontadoAnterior;
+    
+    // Fix: Providing all 4 arguments to calcularPedagio50 as required by its definition in utils/calculators/pedagio.ts
+    const infoPedagio = calcularPedagio50(
+      dInc,
+      tempos.totalTempoAverbado,
+      tempos.totalDescontadoAnterior,
+      metaDias
+    );
     
     // Cálculo de dias cumpridos pós-reforma
     const diasCumpridosPosCorte = dSim >= dCorte ? diffInDays(dCorte, dSim) : 0;
@@ -451,8 +471,8 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
                   </tr>
                   <tr>
                     <td className="p-2 text-gray-700">Tempo no Corte (2020)</td>
-                    <td className="p-2 text-right font-mono text-blue-600">{infoPedagio.tempoNoCorte.toLocaleString()}</td>
-                    <td className="p-2 text-right text-gray-500">{formatDaysToYMD(infoPedagio.tempoNoCorte)}</td>
+                    <td className="p-2 text-right font-mono text-blue-600">{tempoBaseNoCorte.toLocaleString()}</td>
+                    <td className="p-2 text-right text-gray-500">{formatDaysToYMD(tempoBaseNoCorte)}</td>
                   </tr>
                   <tr>
                     <td className="p-2 text-gray-700">Saldo no Corte</td>
@@ -560,6 +580,7 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
                 <th className="px-3 py-3 w-20 text-center">Anos</th>
                 <th className="px-3 py-3 w-20 text-center">Dias</th>
                 <th className="px-3 py-3 w-24 text-center bg-blue-50/50">Total (Dias)</th>
+                <th className="px-3 py-3 w-10 text-center">Ant. 15/09/20</th>
                 <th className="px-3 py-3 w-10"></th>
               </tr>
             </thead>
@@ -592,6 +613,9 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
                     {(Number(av.anos) * 365 + Number(av.dias)).toLocaleString()}
                   </td>
                   <td className="p-2 text-center">
+                    <input type="checkbox" checked={av.anteriorReforma} onChange={e => handleListUpdate<Averbação>('averbacoes', av.id, 'anteriorReforma', e.target.checked)} className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
+                  </td>
+                  <td className="p-2 text-center">
                     <button onClick={() => removeAverbacao(av.id)} className="text-red-400 hover:text-red-600 p-1 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>
                   </td>
                 </tr>
@@ -612,8 +636,9 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
           <table className="w-full text-sm text-left text-gray-500">
             <thead className="text-[10px] text-gray-700 uppercase bg-gray-100 border-b font-bold tracking-wider">
               <tr>
-                <th className="px-3 py-3 w-3/4">Tipo de Desconto</th>
-                <th className="px-3 py-3 w-1/4 text-center">Dias</th>
+                <th className="px-3 py-3 w-3/5">Tipo de Desconto</th>
+                <th className="px-3 py-3 w-1/5 text-center">Dias</th>
+                <th className="px-3 py-3 w-1/5 text-center">Ant. 15/09/20</th>
                 <th className="px-3 py-3 w-10"></th>
               </tr>
             </thead>
@@ -628,6 +653,9 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
                   </td>
                   <td className="p-2">
                     <input type="number" min="0" value={desc.dias} onChange={e => handleListUpdate<Desconto>('descontos', desc.id, 'dias', Number(e.target.value))} className="w-full text-center text-xs border-gray-200 rounded p-2 font-bold text-red-600" />
+                  </td>
+                  <td className="p-2 text-center">
+                    <input type="checkbox" checked={desc.anteriorReforma} onChange={e => handleListUpdate<Desconto>('descontos', desc.id, 'anteriorReforma', e.target.checked)} className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
                   </td>
                   <td className="p-2 text-center">
                     <button onClick={() => removeDesconto(desc.id)} className="text-red-400 hover:text-red-600 p-1 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>

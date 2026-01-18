@@ -29,12 +29,18 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
   // 1. Apuração de Tempos Básicos (Idade e Contribuição)
   const tempos = apurarTemposBasicos(data);
 
-  // 2. Cálculo da Pontuação (Idade + Contribuição) - Agora unificado aqui
+  // 2. Cálculo da Pontuação (Idade + Contribuição)
   const { pontuacaoTotalDias, pontuacaoInteira } = calcularPontuacao(tempos.idadeDias, tempos.tempoContribTotal);
 
   // 3. Cálculo de Pedágio (EC 104/2020)
+  // Conforme a nova lógica: todos os tempos averbados entram no cômputo do corte por serem anteriores à inclusão.
   const metaTempoGeral = (isProfessor ? (isHomem ? 30 : 25) : (isHomem ? 35 : 30)) * 365;
-  const infoPedagio = calcularPedagio50(dInc, metaTempoGeral);
+  const infoPedagio = calcularPedagio50(
+    dInc, 
+    tempos.totalTempoAverbado, 
+    tempos.totalDescontadoAnterior, 
+    metaTempoGeral
+  );
   
   // Cálculo de dias cumpridos pós-reforma
   const diasCumpridosPosCorte = dSim >= dCorte ? diffInDays(dCorte, dSim) : 0;
@@ -57,7 +63,9 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
     idadeFormatada: tempos.idadeFormatada, 
     tempoServicoPMMGDias: tempos.tempoServicoPMMGDias, 
     totalTempoAverbado: tempos.totalTempoAverbado, 
+    totalAverbadoAnterior: tempos.totalAverbadoAnterior,
     totalTempoDescontado: tempos.totalTempoDescontado,
+    totalDescontadoAnterior: tempos.totalDescontadoAnterior,
     tempoEfetivoCivilPMMG: tempos.tempoServicoPMMGDias, 
     tempoContribuicaoTotal: tempos.tempoContribTotal,
     pontuacao: pontuacaoInteira, 

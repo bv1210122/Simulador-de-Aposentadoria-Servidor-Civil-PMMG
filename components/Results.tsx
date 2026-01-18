@@ -129,9 +129,11 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
                 <h4 className="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider border-b border-slate-200 pb-1">Tempos Adicionais</h4>
                 <DataSummaryRow label="Registros Averbados" value={data.averbacoes.length} />
                 <DataSummaryRow label="Total Averbado (Dias)" value={`+ ${calc.totalTempoAverbado}`} highlight />
+                <DataSummaryRow label="Ant. 15/09/2020" value={`${calc.totalAverbadoAnterior} d`} />
                 <div className="h-2"></div>
                 <DataSummaryRow label="Registros Descontos" value={data.descontos.length} />
                 <DataSummaryRow label="Total Descontado (Dias)" value={`- ${calc.totalTempoDescontado}`} highlight />
+                <DataSummaryRow label="Ant. 15/09/2020" value={`${calc.totalDescontadoAnterior} d`} />
             </div>
         </div>
       </section>
@@ -180,7 +182,7 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
              <div className="border-t border-slate-200 pt-1 flex justify-between font-bold text-indigo-600"><span>Total:</span> <span>{calc.pontuacao}</span></div>
           </MemorySection>
           <MemorySection title="Pedágio">
-             <div className="flex justify-between"><span>Corte:</span> <span>{calc.tempoEfetivo15092020}</span></div>
+             <div className="flex justify-between"><span>Corte (Efet.):</span> <span>{calc.tempoEfetivo15092020}</span></div>
              <div className="flex justify-between"><span>Meta:</span> <span>{calc.tempoMinimoExigidoDias}</span></div>
              <div className="flex justify-between text-blue-600 font-bold border-t border-slate-200 pt-1"><span>Devido:</span> <span>{calc.pedagioApurado}</span></div>
           </MemorySection>

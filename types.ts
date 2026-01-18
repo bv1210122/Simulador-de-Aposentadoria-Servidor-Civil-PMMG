@@ -10,12 +10,14 @@ export interface Averbação {
   dataAverbacao: string; // Data de publicação/registro da averbação
   anos: number;
   dias: number;
+  anteriorReforma: boolean;
 }
 
 export interface Desconto {
   id: string;
   tipo: string;
   dias: number;
+  anteriorReforma: boolean;
 }
 
 export interface FormState {
@@ -52,7 +54,9 @@ export interface CalculosFinais {
   idadeFormatada: string;
   tempoServicoPMMGDias: number;
   totalTempoAverbado: number;
+  totalAverbadoAnterior: number;
   totalTempoDescontado: number;
+  totalDescontadoAnterior: number;
   tempoEfetivoCivilPMMG: number;
   tempoContribuicaoTotal: number;
   pontuacao: number;
