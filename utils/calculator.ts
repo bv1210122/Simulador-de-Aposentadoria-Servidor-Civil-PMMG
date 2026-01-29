@@ -51,13 +51,15 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
   // 4. Avaliação das Regras
   const regras: RegraResultado[] = [];
 
-  regras.push(avaliarRegraPontosGeral(evaluatedData, dSim, tempos.idadeAnos, tempos.tempoContribAnos, pontuacaoInteira));
+  // Regras de Pontos (Geral e Professor) - Agora retornam Arrays
+  regras.push(...avaliarRegraPontosGeral(evaluatedData, dSim, tempos.idadeAnos, tempos.tempoContribAnos, pontuacaoInteira));
+  regras.push(...avaliarRegraPontosProfessor(evaluatedData, dSim, tempos.idadeAnos, pontuacaoInteira));
 
-  const rPontosProf = avaliarRegraPontosProfessor(evaluatedData, dSim, tempos.idadeAnos, pontuacaoInteira);
-  if (rPontosProf) regras.push(rPontosProf);
-
+  // Regras de Pedágio
   regras.push(...avaliarRegraPedagioGeral(evaluatedData, tempos.idadeAnos, tempos.tempoContribTotal, metaTempoGeral, infoPedagio.pedagio));
   regras.push(...avaliarRegraPedagioProfessor(evaluatedData, tempos.idadeAnos, tempos.tempoContribTotal, infoPedagio.pedagio));
+  
+  // Regras Permanentes
   regras.push(...avaliarRegrasPermanentes(evaluatedData, dSim, dComp, tempos.idadeAnos, tempos.tempoContribAnos));
 
   // 5. Consolidação Final

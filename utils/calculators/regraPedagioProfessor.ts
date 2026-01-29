@@ -1,5 +1,6 @@
 import { FormState, RegraResultado } from '../../types';
 import { createReq } from './helper';
+import { formatDaysToYMD } from '../calculoDatas';
 
 export const avaliarRegraPedagioProfessor = (
   data: FormState,
@@ -7,47 +8,74 @@ export const avaliarRegraPedagioProfessor = (
   tempoContribDias: number,
   pedagioDias: number
 ): RegraResultado[] => {
-  if (data.tipoServidor !== 'PEBPM') return [];
-
+  const isProfessor = data.tipoServidor === 'PEBPM';
   const isHomem = data.sexo === 'Masculino';
-  const metaRegenciaDias = (isHomem ? 30 : 25) * 365;
-  const metaTotalComPedagio = metaRegenciaDias + pedagioDias;
+  
+  // Se não for professor, exibe informação e encerra
+  if (!isProfessor) {
+    const msgNaoSeAplica = "Essa regra somente se aplica apenas a Professores.";
+    return [
+      {
+        nome: "Regra 3 - Transição - Pedágio - Especial de Professor - Integral - Com paridade",
+        descricao: "Destinada apenas ao cargo de PEBPM.",
+        cumpre: false,
+        requisitos: [createReq("É professor (PEBPM)", "Sim", "Não (" + msgNaoSeAplica + ")", false)]
+      },
+      {
+        nome: "Regra 4 - Transição - Pedágio - Especial de Professor - Média integral - Sem paridade",
+        descricao: "Destinada apenas ao cargo de PEBPM.",
+        cumpre: false,
+        requisitos: [createReq("É professor (PEBPM)", "Sim", "Não (" + msgNaoSeAplica + ")", false)]
+      }
+    ];
+  }
 
-  // Parâmetros de Idade e Regência
+  // Parâmetros Homem/Mulher Professor
   const idadeMinima = isHomem ? 55 : 50;
   const regenciaMinima = isHomem ? 30 : 25;
+  const metaDocenteDias = regenciaMinima * 365;
+  const metaTotalComPedagio = metaDocenteDias + pedagioDias;
 
-  // Verificações Booleanas
+  // Verificações
   const cumpreIdade = idadeAnos >= idadeMinima;
   const cumpreRegencia = data.TempoDeRegência >= regenciaMinima;
-  const cumprePedagio = tempoContribDias >= metaTotalComPedagio;
-  const cumpreComum = cumpreIdade && cumpreRegencia && cumprePedagio;
+  const cumpreSvcPublico = data.dezAnosServicoPublico;
+  const cumpreCargoEfetivo = data.cincoAnosCargoEfetivo;
+  const cumpreTempoTotal = tempoContribDias >= metaTotalComPedagio;
 
-  // Requisitos Reutilizáveis
-  const reqIdade = createReq("Idade", idadeMinima, idadeAnos, cumpreIdade);
-  const reqPedagio = createReq("Pedágio (50%)", `${pedagioDias} d`, `${Math.max(0, tempoContribDias - metaRegenciaDias)} d`, cumprePedagio);
+  const buildBaseRequisitos = () => [
+    createReq("É professor (PEBPM)", "Sim", "Sim", true),
+    createReq("Idade mínima", idadeMinima, idadeAnos, cumpreIdade),
+    createReq("Tempo regência (Docente)", regenciaMinima, data.TempoDeRegência, cumpreRegencia),
+    createReq("Tempo no serviço público (10a)", "10 anos", data.dezAnosServicoPublico ? "Sim" : "Não", cumpreSvcPublico),
+    createReq("Tempo no cargo efetivo (5a)", "05 anos", data.cincoAnosCargoEfetivo ? "Sim" : "Não", cumpreCargoEfetivo),
+    createReq("Pedágio (Cumprimento)", formatDaysToYMD(metaTotalComPedagio), formatDaysToYMD(tempoContribDias), cumpreTempoTotal),
+    createReq("Valor do Pedágio Calculado", "-", `${pedagioDias} dias`, true)
+  ];
 
   const regras: RegraResultado[] = [];
 
+  // Regra 3 - Professor Integral (Ingresso até 2003)
+  const cumpreR3 = data.ingressouAte2003 && cumpreIdade && cumpreRegencia && cumpreSvcPublico && cumpreCargoEfetivo && cumpreTempoTotal;
   regras.push({
-    nome: "Regra 3 - Pedágio Professor (Integral)",
-    descricao: "Exclusivo PEBPM. Ingresso até 2003. Pedágio 50%. Redução de 5 anos na idade/tempo.",
-    cumpre: data.ingressouAte2003 && cumpreComum,
+    nome: "Regra 3 - Transição - Pedágio - Especial de Professor - Integral - Com paridade",
+    descricao: "Exclusivo PEBPM. Ingresso até 31/12/2003. Regência mínima.",
+    cumpre: cumpreR3,
     requisitos: [
-      reqIdade,
-      createReq("Regência", regenciaMinima, data.TempoDeRegência, cumpreRegencia),
-      reqPedagio
+      createReq("Ingresso em cargo efetivo até", "31/12/2003", data.ingressouAte2003 ? "Sim" : "Não", data.ingressouAte2003),
+      ...buildBaseRequisitos()
     ]
   });
 
+  // Regra 4 - Professor Média (Ingresso entre 2004 e 2020)
+  const cumpreR4 = data.ingressouEntre2003e2020 && cumpreIdade && cumpreRegencia && cumpreSvcPublico && cumpreCargoEfetivo && cumpreTempoTotal;
   regras.push({
-    nome: "Regra 4 - Pedágio Professor (Média)",
-    descricao: "Exclusivo PEBPM. Ingresso 2004-2020. Pedágio 50%. Cálculo pela média.",
-    cumpre: data.ingressouEntre2003e2020 && cumpreComum,
+    nome: "Regra 4 - Transição - Pedágio - Especial de Professor - Média integral - Sem paridade",
+    descricao: "Exclusivo PEBPM. Ingresso entre 01/01/2004 e 15/09/2020.",
+    cumpre: cumpreR4,
     requisitos: [
-      createReq("Ingresso 2004-2020", "Sim", data.ingressouEntre2003e2020 ? "Sim" : "Não", data.ingressouEntre2003e2020),
-      reqIdade,
-      reqPedagio
+      createReq("Ingresso em cargo efetivo até", "Entre 2004 e 2020", data.ingressouEntre2003e2020 ? "Sim" : "Não", data.ingressouEntre2003e2020),
+      ...buildBaseRequisitos()
     ]
   });
 
