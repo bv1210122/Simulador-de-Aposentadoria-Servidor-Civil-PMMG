@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { FormState, Averbação, Desconto, FeriasPremio, TipoServidor, Sexo } from '../types';
-import { Plus, Trash2, Calendar, User, Briefcase, CheckCircle2, MinusCircle, Calculator, Info, History, Star, Timer, FileSearch, Award, AlertCircle, Scale, Target, GraduationCap } from 'lucide-react';
-import { parseISO, formatDaysToYMD, diffInDays, calculateCalendarPeriod } from '../utils/calculoDatas';
+import { Plus, Trash2, Calendar, User, Briefcase, CheckCircle2, MinusCircle, Calculator, Info, History, Star, Timer, FileSearch, Award, AlertCircle, Scale, Target, GraduationCap, X, FileCheck } from 'lucide-react';
+import { parseISO, formatDaysToYMD, diffInDays, calculateCalendarPeriod, formatDateBR } from '../utils/calculoDatas';
 import { apurarTemposBasicos } from '../utils/calculators/temposBasicos';
 import { calcularPedagio50 } from '../utils/calculators/pedagio';
 import { calcularPontuacao } from '../utils/calculators/pontos';
-import { calculateIdadePMMG} from '../utils/calculators/idade';
+import { calculateIdadePMMG } from '../utils/calculators/idade';
 
 interface Props {
   formData: FormState;
@@ -39,8 +39,8 @@ const DateInput: React.FC<{
       if (parts.length === 3) {
         const [y, m, d] = parts;
         if (y.length === 4 && m.length === 2 && d.length === 2) {
-            setDisplay(`${d}/${m}/${y}`);
-            return;
+          setDisplay(`${d}/${m}/${y}`);
+          return;
         }
       }
     }
@@ -61,7 +61,7 @@ const DateInput: React.FC<{
         }
       }
     }
-    
+
     setDisplay(formatted);
 
     if (input.length === 8) {
@@ -120,12 +120,118 @@ const PreviewRow: React.FC<{ label: string, value: string | number, subValue?: s
   </div>
 );
 
+const TechnicalAuditModal: React.FC<{ isOpen: boolean, onClose: () => void, previewData: any, formData: FormState }> = ({ isOpen, onClose, previewData, formData }) => {
+  if (!isOpen || !previewData) return null;
+
+  const rows = [
+    {
+      nome: "Idade Real (SEPLAG)",
+      formula: "((AnoUltimoAniv - AnoNasc)*365) + (DataSim - DataDiaPostUltimoAniv)",
+      detalhamento: `Nasc: ${formatDateBR(parseISO(formData.dataNascimento))}, Sim: ${formatDateBR(parseISO(formData.dataSimulacao))}. Cálculo: (${previewData.tempos.idadeAnos} * 365) + ${previewData.tempos.idadeDias - (previewData.tempos.idadeAnos * 365)} = ${previewData.tempos.idadeDias} dias.`,
+      obs: "Apura a idade em dias para fins de pontuação conforme norma SEPLAG."
+    },
+    {
+      nome: "Tempo PMMG (Bruto)",
+      formula: "DataSimulação - DataInclusão (Contagem Real)",
+      detalhamento: `Inc: ${formatDateBR(parseISO(formData.dataInclusaoPMMG))}, Sim: ${formatDateBR(parseISO(formData.dataSimulacao))}. Total: ${previewData.tempos.tempoServicoPMMGDias} dias.`,
+      obs: "Tempo de serviço efetivo na instituição sem considerar averbações."
+    },
+    {
+      nome: "Contribuição Líquida",
+      formula: "TempoPMMG + TempoAverbado + FériasPrêmioDobro - Descontos",
+      detalhamento: `${previewData.tempos.tempoServicoPMMGDias} + ${previewData.tempos.totalTempoAverbado} + ${previewData.tempos.totalFeriasPremio} - ${previewData.tempos.totalTempoDescontado} = ${previewData.tempos.tempoContribTotal} dias.`,
+      obs: "Tempo total considerado para fins previdenciários após todos os ajustes."
+    },
+    {
+      nome: "Pontuação (Pontos)",
+      formula: "(IdadeDias + ContribuiçãoDias) / 365 (Truncado)",
+      detalhamento: `${previewData.tempos.idadeDias} + ${previewData.tempos.tempoContribTotal} = ${previewData.tempos.idadeDias + previewData.tempos.tempoContribTotal} dias. Resultado: ${previewData.pontuacaoInteira} pts.`,
+      obs: "Valor inteiro de referência para a regra de transição por somatório de pontos."
+    },
+    {
+      nome: "Cálculo do Pedágio",
+      formula: "(Meta - TempoEm15/09/20) * 0.5",
+      detalhamento: `Meta: ${previewData.metaDias} d. No Corte: ${previewData.infoPedagio.tempoNoCorte} d. Saldo: ${previewData.infoPedagio.saldoNoCorte} d. Pedágio: ${previewData.infoPedagio.pedagio} d.`,
+      obs: "Determina o tempo extra necessário conforme regra de 50% da EC 104/2020."
+    }
+  ];
+
+  if (formData.tipoServidor === 'PEBPM') {
+    rows.push({
+      nome: "Tempo de Regência",
+      formula: "RegênciaAverbada + TempoServiçoPMMG",
+      detalhamento: `Averbado: ${previewData.tempos.tempoRegenciaAverbadoAnos} anos. PMMG: ${previewData.tempos.tempoServicoPMMGAnos} anos. Total: ${previewData.tempos.tempoRegenciaTotalAnos} anos.`,
+      obs: "Critério de tempo de sala de aula específico para a carreira PEBPM."
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+      <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+        <div className="px-6 py-4 bg-blue-900 text-white flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <FileSearch className="w-6 h-6 text-blue-300" />
+            <h2 className="text-xl font-bold tracking-tight">Detalhamento Técnico dos Cálculos (Auditoria)</h2>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        
+        <div className="p-6 overflow-y-auto bg-slate-50">
+          <div className="mb-6 bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3 items-start">
+            <Info className="w-5 h-5 text-blue-600 mt-0.5" />
+            <p className="text-sm text-blue-900 leading-relaxed">
+              Esta tabela apresenta a rastreabilidade completa das fórmulas aplicadas e os valores extraídos dos dados informados. 
+              As regras seguem rigorosamente a legislação vigente e a metodologia de contagem da PMMG/SEPLAG.
+            </p>
+          </div>
+
+          <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  <th className="px-4 py-3 border-b border-slate-200 w-1/5">Nome do Cálculo</th>
+                  <th className="px-4 py-3 border-b border-slate-200 w-1/5">Fórmula Aplicada</th>
+                  <th className="px-4 py-3 border-b border-slate-200 w-2/5">Detalhamento e Memória</th>
+                  <th className="px-4 py-3 border-b border-slate-200 w-1/5">Observações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {rows.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                    <td className="px-4 py-3 text-sm font-bold text-blue-900 align-top">{row.nome}</td>
+                    <td className="px-4 py-3 text-xs font-mono text-slate-600 align-top leading-relaxed">{row.formula}</td>
+                    <td className="px-4 py-3 text-xs text-slate-700 align-top">
+                      <div className="bg-slate-50 p-2 rounded border border-slate-100 font-medium">
+                        {row.detalhamento}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500 italic align-top leading-tight">{row.obs}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="px-6 py-4 bg-white border-t border-slate-200 flex justify-end">
+          <button onClick={onClose} className="px-6 py-2 bg-blue-800 text-white rounded-lg font-bold hover:bg-blue-900 transition-shadow shadow-md">
+            Fechar Auditoria
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
   const [resetKeys, setResetKeys] = useState({
     dataSimulacao: 0,
     dataNascimento: 0,
     dataInclusaoPMMG: 0
   });
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
 
   const forceReset = (name: string) => {
     setResetKeys(prev => ({ ...prev, [name]: prev[name as keyof typeof prev] + 1 }));
@@ -264,7 +370,6 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
   const totalAverbadoPos = formData.averbacoes.filter(av => !av.anteriorReforma).reduce((acc, av) => acc + (Number(av.anos) * 365) + Number(av.dias), 0);
   const totalAverbadoGeral = totalAverbadoAnt + totalAverbadoPos;
 
-  // Cálculo de Regência Averbada para Rodapé
   const totalRegenciaAverbadoAnos = formData.averbacoes
     .filter(av => av.isRegencia)
     .reduce((acc, av) => acc + Number(av.anos), 0);
@@ -279,16 +384,15 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
   const totalFeriasPremioSimples = formData.feriasPremio.reduce((acc, fp) => acc + fp.dias, 0);
   const totalFeriasPremioDobro = totalFeriasPremioSimples * 2;
 
-  // Cálculos em tempo real para o detalhamento prévio
   const canPreview = formData.dataSimulacao && formData.dataNascimento && formData.dataInclusaoPMMG && formData.sexo && formData.tipoServidor;
-  
+
   let preview = null;
   if (canPreview) {
     try {
       const dSim = parseISO(formData.dataSimulacao);
       const dInc = parseISO(formData.dataInclusaoPMMG);
       const dCorte = parseISO('2020-09-15');
-      
+
       const isProfessor = formData.tipoServidor === 'PEBPM';
       const isHomem = formData.sexo === 'Masculino';
       const metaAnos = isProfessor ? (isHomem ? 30 : 25) : (isHomem ? 35 : 30);
@@ -318,11 +422,11 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
       const dStart = parseISO(start);
       const dEnd = parseISO(end);
       if (isNaN(dStart.getTime()) || isNaN(dEnd.getTime()) || dStart > dEnd) return null;
-      
-      const info = icon === "🎂" 
-        ? calculateIdadePMMG(dStart, dEnd) 
+
+      const info = icon === "🎂"
+        ? calculateIdadePMMG(dStart, dEnd)
         : calculateCalendarPeriod(dStart, dEnd);
-        
+
       return (
         <div className="mt-1 text-[10px] font-bold text-blue-700 bg-blue-50/80 p-1.5 rounded border border-blue-100 flex items-center gap-1">
           <span>{icon} {info.formatada}</span>
@@ -499,7 +603,7 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
 
       <section>
         <div className="flex justify-between items-center mb-4"><h2 className={sectionTitleClass}><Award className="w-5 h-5 text-amber-600" /> Férias-Prêmio</h2></div>
-        
+
         <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded-r-md">
           <div className="flex items-start gap-3">
             <Info className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
@@ -610,7 +714,28 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
         </section>
       )}
 
-      <button onClick={onCalculate} className="w-full bg-blue-800 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-900 transition-all shadow-lg active:scale-[0.98]">Gerar Simulação</button>
+      <div className="pt-4 flex flex-col items-center gap-4">
+        {canPreview && (
+          <button 
+            onClick={() => setIsAuditModalOpen(true)}
+            className="text-blue-600 font-bold text-sm flex items-center gap-2 hover:text-blue-800 transition-colors p-2 rounded-lg hover:bg-blue-50"
+          >
+            <FileCheck className="w-4 h-4" />
+            Exibir Detalhamento Técnico dos Cálculos
+          </button>
+        )}
+
+        <button onClick={onCalculate} className="w-full bg-blue-800 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-900 transition-all shadow-lg active:scale-[0.98]">
+          Gerar Simulação
+        </button>
+      </div>
+
+      <TechnicalAuditModal 
+        isOpen={isAuditModalOpen} 
+        onClose={() => setIsAuditModalOpen(false)} 
+        previewData={preview}
+        formData={formData}
+      />
     </div>
   );
 };
