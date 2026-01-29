@@ -1,4 +1,3 @@
-
 export type TipoServidor = 'PEBPM' | 'EEBPM' | 'ASPM' | 'AAPM' | 'AGPM';
 export type Sexo = 'Masculino' | 'Feminino';
 
@@ -11,6 +10,7 @@ export interface Averbação {
   anos: number;
   dias: number;
   anteriorReforma: boolean;
+  isRegencia: boolean;
 }
 
 export interface Desconto {
@@ -18,6 +18,12 @@ export interface Desconto {
   tipo: string;
   dias: number;
   anteriorReforma: boolean;
+}
+
+export interface FeriasPremio {
+  id: string;
+  descricao: string;
+  dias: number;
 }
 
 export interface FormState {
@@ -28,11 +34,13 @@ export interface FormState {
   dataInclusaoPMMG: string;
   averbacoes: Averbação[];
   descontos: Desconto[];
+  feriasPremio: FeriasPremio[];
   ingressouAte2003: boolean;
   ingressouEntre2003e2020: boolean;
   dezAnosServicoPublico: boolean;
   cincoAnosCargoEfetivo: boolean;
-  tempoRegencia: number;
+  tempoEfetivo15092020: number; // Campo adicionado para persistência se necessário
+  TempoDeRegência: number;
 }
 
 export interface Requisito {
@@ -57,6 +65,8 @@ export interface CalculosFinais {
   totalAverbadoAnterior: number;
   totalTempoDescontado: number;
   totalDescontadoAnterior: number;
+  totalFeriasPremio: number;
+  totalFeriasPremioAnterior: number;
   tempoEfetivoCivilPMMG: number;
   tempoContribuicaoTotal: number;
   pontuacao: number;
@@ -69,4 +79,6 @@ export interface CalculosFinais {
   tempoMinimoExigidoDias: number;
   saldoFaltanteCorte: number;
   diasCumpridosPosCorte: number;
+  tempoRegenciaAverbadoAnos: number;
+  tempoRegenciaTotalAnos: number;
 }

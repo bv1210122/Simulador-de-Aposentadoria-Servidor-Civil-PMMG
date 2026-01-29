@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import InputForm from './components/InputForm';
 import Results from './components/Results';
@@ -29,11 +28,13 @@ const initialForm: FormState = {
   dataInclusaoPMMG: '',
   averbacoes: [],
   descontos: [],
+  feriasPremio: [],
   ingressouAte2003: false,
   ingressouEntre2003e2020: false,
   dezAnosServicoPublico: false,
   cincoAnosCargoEfetivo: false,
-  tempoRegencia: 0
+  tempoEfetivo15092020: 0,
+  TempoDeRegência: 0
 };
 
 /**

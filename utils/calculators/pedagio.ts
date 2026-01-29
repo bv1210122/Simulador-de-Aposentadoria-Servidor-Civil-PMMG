@@ -1,5 +1,4 @@
-
-import { diffInDays, calculatePMMGPeriod } from '../calculoDatas';
+import { diffInDays } from '../calculoDatas';
 
 /**
  * Lógica de Pedágio PMMG (EC 104/2020)
@@ -37,11 +36,11 @@ export const calcularPedagio50 = (
   }
 
   // 1. Cálculo do Tempo PMMG até a data do corte (15/09/2020)
-  // Seguindo a aritmética PMMG: anos completos * 365 + dias residuais
-  const pmmgNoCorte = calculatePMMGPeriod(dataInclusao, dataCorte);
+  // REGRA PMMG PARA TEMPO DE SERVIÇO: Contagem dia a dia real.
+  const tempoPMMGNoCorte = diffInDays(dataInclusao, dataCorte);
   
   // 2. Aplicação da Fórmula: Tempo15092020 = TempoPMMG + TotalAverbado - DescontosNoPeriodo
-  const tempoNoCorte = pmmgNoCorte.totalDias + totalAverbadoDias - descontosAnterioresDias;
+  const tempoNoCorte = tempoPMMGNoCorte + totalAverbadoDias - descontosAnterioresDias;
   
   // 3. Saldo Faltante e Pedágio
   const saldoNoCorte = Math.max(0, metaDias - tempoNoCorte);

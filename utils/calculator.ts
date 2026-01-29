@@ -1,6 +1,5 @@
-
 import { FormState, CalculosFinais, RegraResultado } from '../types';
-import { parseISO, addDays, formatDateBR, diffInDays } from './calculoDatas';
+import { parseISO, addDays, formatDateBR, diffInDays, calculateCalendarPeriod } from './calculoDatas';
 
 // Módulos especializados
 import { apurarTemposBasicos } from './calculators/temposBasicos';
@@ -26,36 +25,40 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
   const isProfessor = data.tipoServidor === 'PEBPM';
   const isHomem = data.sexo === 'Masculino';
 
-  // 1. Apuração de Tempos Básicos (Idade e Contribuição)
+  // 1. Apuração de Tempos Básicos
   const tempos = apurarTemposBasicos(data);
 
-  // 2. Cálculo da Pontuação (Idade + Contribuição)
+  // Atualiza o valor de regência na cópia dos dados para avaliação das regras
+  const evaluatedData = { 
+    ...data, 
+    TempoDeRegência: tempos.tempoRegenciaTotalAnos 
+  };
+
+  // 2. Cálculo da Pontuação
   const { pontuacaoTotalDias, pontuacaoInteira } = calcularPontuacao(tempos.idadeDias, tempos.tempoContribTotal);
 
-  // 3. Cálculo de Pedágio (EC 104/2020)
-  // Conforme a nova lógica: todos os tempos averbados entram no cômputo do corte por serem anteriores à inclusão.
+  // 3. Cálculo de Pedágio
   const metaTempoGeral = (isProfessor ? (isHomem ? 30 : 25) : (isHomem ? 35 : 30)) * 365;
   const infoPedagio = calcularPedagio50(
     dInc, 
-    tempos.totalTempoAverbado, 
+    tempos.totalTempoAverbado + tempos.totalFeriasPremioAnterior, 
     tempos.totalDescontadoAnterior, 
     metaTempoGeral
   );
   
-  // Cálculo de dias cumpridos pós-reforma
   const diasCumpridosPosCorte = dSim >= dCorte ? diffInDays(dCorte, dSim) : 0;
 
   // 4. Avaliação das Regras
   const regras: RegraResultado[] = [];
 
-  regras.push(avaliarRegraPontosGeral(data, dSim, tempos.idadeAnos, tempos.tempoContribAnos, pontuacaoInteira));
+  regras.push(avaliarRegraPontosGeral(evaluatedData, dSim, tempos.idadeAnos, tempos.tempoContribAnos, pontuacaoInteira));
 
-  const rPontosProf = avaliarRegraPontosProfessor(data, dSim, tempos.idadeAnos, pontuacaoInteira);
+  const rPontosProf = avaliarRegraPontosProfessor(evaluatedData, dSim, tempos.idadeAnos, pontuacaoInteira);
   if (rPontosProf) regras.push(rPontosProf);
 
-  regras.push(...avaliarRegraPedagioGeral(data, tempos.idadeAnos, tempos.tempoContribTotal, metaTempoGeral, infoPedagio.pedagio));
-  regras.push(...avaliarRegraPedagioProfessor(data, tempos.idadeAnos, tempos.tempoContribTotal, infoPedagio.pedagio));
-  regras.push(...avaliarRegrasPermanentes(data, dSim, dComp, tempos.idadeAnos, tempos.tempoContribAnos));
+  regras.push(...avaliarRegraPedagioGeral(evaluatedData, tempos.idadeAnos, tempos.tempoContribTotal, metaTempoGeral, infoPedagio.pedagio));
+  regras.push(...avaliarRegraPedagioProfessor(evaluatedData, tempos.idadeAnos, tempos.tempoContribTotal, infoPedagio.pedagio));
+  regras.push(...avaliarRegrasPermanentes(evaluatedData, dSim, dComp, tempos.idadeAnos, tempos.tempoContribAnos));
 
   // 5. Consolidação Final
   const calc: CalculosFinais = {
@@ -66,6 +69,8 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
     totalAverbadoAnterior: tempos.totalAverbadoAnterior,
     totalTempoDescontado: tempos.totalTempoDescontado,
     totalDescontadoAnterior: tempos.totalDescontadoAnterior,
+    totalFeriasPremio: tempos.totalFeriasPremio,
+    totalFeriasPremioAnterior: tempos.totalFeriasPremioAnterior,
     tempoEfetivoCivilPMMG: tempos.tempoServicoPMMGDias, 
     tempoContribuicaoTotal: tempos.tempoContribTotal,
     pontuacao: pontuacaoInteira, 
@@ -77,7 +82,9 @@ export const calculateResults = (data: FormState): { calc: CalculosFinais; regra
     tempoEfetivo15092020: infoPedagio.tempoNoCorte,
     tempoMinimoExigidoDias: metaTempoGeral,
     saldoFaltanteCorte: infoPedagio.saldoNoCorte,
-    diasCumpridosPosCorte
+    diasCumpridosPosCorte,
+    tempoRegenciaAverbadoAnos: tempos.tempoRegenciaAverbadoAnos,
+    tempoRegenciaTotalAnos: tempos.tempoRegenciaTotalAnos
   };
 
   return { calc, regras };

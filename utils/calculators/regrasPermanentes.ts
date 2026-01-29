@@ -1,4 +1,3 @@
-
 import { FormState, RegraResultado } from '../../types';
 import { formatDateBR } from '../calculoDatas';
 import { createReq } from './helper';
@@ -40,7 +39,7 @@ export const avaliarRegrasPermanentes = (
   if (isProfessor) {
     const idadeProf = isHomem ? 60 : 57;
     const cumpreIdadeProf = idadeAnos >= idadeProf;
-    const cumpreRegencia = data.tempoRegencia >= 25;
+    const cumpreRegencia = data.TempoDeRegência >= 25;
     const cumpreProf = cumpreIdadeProf && cumpreRegencia && cumpre10AnosPublico && cumpre5AnosCargo;
 
     regras.push({
@@ -49,7 +48,7 @@ export const avaliarRegrasPermanentes = (
       cumpre: cumpreProf,
       requisitos: [
         createReq("Idade", idadeProf, idadeAnos, cumpreIdadeProf),
-        createReq("Regência", 25, data.tempoRegencia, cumpreRegencia),
+        createReq("Regência", 25, data.TempoDeRegência, cumpreRegencia),
         createReq("10 Anos Svc Público", "Sim", cumpre10AnosPublico ? "Sim" : "Não", cumpre10AnosPublico),
         createReq("5 Anos Cargo Efetivo", "Sim", cumpre5AnosCargo ? "Sim" : "Não", cumpre5AnosCargo)
       ]

@@ -1,4 +1,3 @@
-
 import { FormState, RegraResultado } from '../../types';
 import { createReq } from './helper';
 
@@ -20,7 +19,7 @@ export const avaliarRegraPedagioProfessor = (
 
   // Verificações Booleanas
   const cumpreIdade = idadeAnos >= idadeMinima;
-  const cumpreRegencia = data.tempoRegencia >= regenciaMinima;
+  const cumpreRegencia = data.TempoDeRegência >= regenciaMinima;
   const cumprePedagio = tempoContribDias >= metaTotalComPedagio;
   const cumpreComum = cumpreIdade && cumpreRegencia && cumprePedagio;
 
@@ -36,7 +35,7 @@ export const avaliarRegraPedagioProfessor = (
     cumpre: data.ingressouAte2003 && cumpreComum,
     requisitos: [
       reqIdade,
-      createReq("Regência", regenciaMinima, data.tempoRegencia, cumpreRegencia),
+      createReq("Regência", regenciaMinima, data.TempoDeRegência, cumpreRegencia),
       reqPedagio
     ]
   });

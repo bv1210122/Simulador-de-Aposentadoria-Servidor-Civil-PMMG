@@ -1,4 +1,3 @@
-
 import { FormState, RegraResultado } from '../../types';
 import { getMetaPontosProfessor } from './pontos';
 import { createReq } from './helper';
@@ -18,7 +17,7 @@ export const avaliarRegraPontosProfessor = (
   const regenciaMinima = isHomem ? 30 : 25;
 
   const cumpreIdade = idadeAnos >= idadeMinima;
-  const cumpreRegencia = data.tempoRegencia >= regenciaMinima;
+  const cumpreRegencia = data.TempoDeRegência >= regenciaMinima;
   const cumprePontos = pontuacaoAtual >= meta.pontos;
 
   const cumpre = cumpreIdade && cumpreRegencia && cumprePontos;
@@ -29,7 +28,7 @@ export const avaliarRegraPontosProfessor = (
     cumpre,
     requisitos: [
       createReq("Idade Mínima", idadeMinima, idadeAnos, cumpreIdade),
-      createReq("Tempo Regência", regenciaMinima, data.tempoRegencia, cumpreRegencia),
+      createReq("Tempo Regência", regenciaMinima, data.TempoDeRegência, cumpreRegencia),
       createReq("Pontos", meta.label, pontuacaoAtual, cumprePontos)
     ]
   };
