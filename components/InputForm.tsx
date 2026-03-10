@@ -416,6 +416,7 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
     }
   }
 
+/** 
   const renderPreviaData = (start: string, end: string, icon: string) => {
     if (!start || !end) return null;
     try {
@@ -436,6 +437,39 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
       return null;
     }
   };
+*/
+  const renderPreviaData = (start: string, end: string, icon: string) => {
+      if (!start || !end) return null;
+      try {
+        const dStart = parseISO(start);
+        const dEnd = parseISO(end);
+        if (isNaN(dStart.getTime()) || isNaN(dEnd.getTime()) || dStart > dEnd) return null;
+
+        let formattedTime;
+        if (icon === "🎂") {
+          formattedTime = calculateIdadePMMG(dStart, dEnd).formatada;
+        } else if (icon === "🛡️") { // Para a Inclusão PMMG, usar a contagem de dias brutos
+          const totalDays = diffInDays(dStart, dEnd);
+          formattedTime = formatDaysToYMD(totalDays);
+        } else { // Para outros ícones, manter a lógica original (se houver)
+          formattedTime = calculateCalendarPeriod(dStart, dEnd).formatada;
+        }
+
+        return (
+          <div className="mt-1 text-[10px] font-bold text-blue-700 bg-blue-50/80 p-1.5 rounded border border-blue-100 flex items-center gap-1">
+            <span>{icon} {formattedTime}</span>
+          </div>
+        );
+      } catch {
+        return null;
+      }
+    };
+
+
+
+
+
+
 
   return (
     <div className="space-y-8 bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-100 no-print">
@@ -670,7 +704,7 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <PreviewBox title="1. Apuração de Dias (Fórmula Oficial)" icon={<Timer className="w-3.5 h-3.5" />}>
               <PreviewRow label="Idade Real" value={preview.tempos.idadeDias} subValue={preview.tempos.idadeFormatada} />
-              <PreviewRow label="Tempo PMMG (Bruto)" value={preview.tempos.tempoServicoPMMGDias} subValue={preview.tempos.tempoServicoPMMGFormatado} />
+              <PreviewRow label="Tempo PMMG (Bruto)" value={preview.tempos.tempoServicoPMMGDias} subValue={formatDaysToYMD(preview.tempos.tempoServicoPMMGDias)} />
               <PreviewRow label="(+) Total Averbado" value={preview.tempos.totalTempoAverbado} subValue={formatDaysToYMD(preview.tempos.totalTempoAverbado)} isPlus />
               <PreviewRow label="(+) Férias-Prêmio (Dobro)" value={preview.tempos.totalFeriasPremio} subValue={formatDaysToYMD(preview.tempos.totalFeriasPremio)} isPlus highlightColor="text-amber-600" />
               <PreviewRow label="(-) Total Descontado" value={preview.tempos.totalTempoDescontado} subValue={formatDaysToYMD(preview.tempos.totalTempoDescontado)} isMinus />
