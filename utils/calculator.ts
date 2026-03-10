@@ -1,4 +1,4 @@
-import { FormState, CalculosFinais, RegraResultado } from '../types';
+import { FormState, CalculosFinais, RegraResultado } from '../../types';
 import { parseISO, addDays, formatDateBR, diffInDays, calculateCalendarPeriod } from './calculoDatas';
 
 // Módulos especializados

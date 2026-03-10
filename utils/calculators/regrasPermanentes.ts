@@ -40,7 +40,7 @@ export const avaliarRegrasPermanentes = (
   if (!isProfessor) {
     regras.push({
       nome: "Regra Permanente 2 - Regra permanente especial de professor - Média permanente - Sem paridade",
-      descricao: "Essa regra somente se aplica apenas a Professores.",
+      descricao: "Essa regra é exclusiva para Professores.",
       cumpre: false,
       requisitos: [
         createReq("É professor (PEBPM)", "Sim", "Não", false)

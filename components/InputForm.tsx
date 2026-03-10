@@ -416,28 +416,6 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
     }
   }
 
-/** 
-  const renderPreviaData = (start: string, end: string, icon: string) => {
-    if (!start || !end) return null;
-    try {
-      const dStart = parseISO(start);
-      const dEnd = parseISO(end);
-      if (isNaN(dStart.getTime()) || isNaN(dEnd.getTime()) || dStart > dEnd) return null;
-
-      const info = icon === "🎂"
-        ? calculateIdadePMMG(dStart, dEnd)
-        : calculateCalendarPeriod(dStart, dEnd);
-
-      return (
-        <div className="mt-1 text-[10px] font-bold text-blue-700 bg-blue-50/80 p-1.5 rounded border border-blue-100 flex items-center gap-1">
-          <span>{icon} {info.formatada}</span>
-        </div>
-      );
-    } catch {
-      return null;
-    }
-  };
-*/
   const renderPreviaData = (start: string, end: string, icon: string) => {
       if (!start || !end) return null;
       try {

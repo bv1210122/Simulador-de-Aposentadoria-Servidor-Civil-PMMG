@@ -214,6 +214,104 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
         </div>
       </section>
 
+      <div className="space-y-6">
+        {/* Tabela de Averbações */}
+        {data.averbacoes?.length > 0 && (
+          <section className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 font-bold text-xs uppercase text-slate-700">
+              Averbações Detalhadas
+            </div>
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-100/50 text-slate-500">
+                <tr>
+                  <th className="px-4 py-2 border-b">Origem / Função</th>
+                  <th className="px-4 py-2 border-b">Regime</th>
+                  <th className="px-4 py-2 border-b text-center">Tempo (A/D)</th>
+                  <th className="px-4 py-2 border-b text-center">Regência</th>
+                  <th className="px-4 py-2 border-b text-center">Ant. Reforma</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.averbacoes.map((av: any) => (
+                  <tr key={av.id} className="hover:bg-blue-50/30 transition-colors">
+                    <td className="px-4 py-3 border-b">
+                      <div className="font-semibold text-slate-800">{av.origem || "-"}</div>
+                      <div className="text-[10px] text-slate-400">{av.funcao || "Não informada"}</div>
+                    </td>
+                    <td className="px-4 py-3 border-b">{av.regime || "-"}</td>
+                    <td className="px-4 py-3 border-b text-center font-mono font-bold text-blue-700">
+                      {av.anos}a {av.dias}d
+                    </td>
+                    <td className="px-4 py-3 border-b text-center">{av.isRegencia ? "✅" : "❌"}</td>
+                    <td className="px-4 py-3 border-b text-center">{av.anteriorReforma ? "Sim" : "Não"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
+      </div>
+
+      <div className="space-y-6">
+        {/* Tabela de Descontos */}
+        {data.descontos?.length > 0 && (
+          <section className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 font-bold text-xs uppercase text-slate-700">
+              Descontos/Afastamentos Detalhados
+            </div>
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="bg-slate-50 text-[9px] uppercase text-slate-400">
+                  <th className="px-4 py-2">Tipo / Descrição</th>
+                  <th className="px-4 py-2 text-center">Dias</th>
+                  <th className="px-4 py-2 text-center">Período</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.descontos.map((d) => (
+                  <tr key={d.id} className="border-t border-slate-100">
+                    <td className="px-4 py-2">{d.tipo || "Geral"}</td>
+                    <td className="px-4 py-2 text-center font-bold text-red-600">-{d.dias}</td>
+                    <td className="px-4 py-2 text-center text-[10px]">
+                      {d.anteriorReforma ? "Ant. Reforma" : "Pós Reforma"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
+      </div> 
+      
+      <div className="space-y-6">
+        {/* Tabela de Férias Prêmio */}
+        {data.feriasPremio?.length > 0 && (
+          <section className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 font-bold text-xs uppercase text-slate-700">
+              Férias-Prêmio em Dobro
+            </div>
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="bg-slate-50 text-[9px] uppercase text-slate-400">
+                  <th className="px-4 py-2">Descrição</th>
+                  <th className="px-4 py-2 text-center">Dias Originais</th>
+                  <th className="px-4 py-2 text-center">Total (Dobro)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.feriasPremio.map((fp) => (
+                  <tr key={fp.id} className="border-t border-slate-100">
+                    <td className="px-4 py-2">{fp.descricao || "Férias não gozadas"}</td>
+                    <td className="px-4 py-2 text-center">{fp.dias}</td>
+                    <td className="px-4 py-2 text-center font-bold text-green-600">+{fp.dias * 2}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
+      </div>   
+
       {/* Detalhamento de Regras */}
       <section className="space-y-4">
         <div className="flex items-center gap-2 px-1">
