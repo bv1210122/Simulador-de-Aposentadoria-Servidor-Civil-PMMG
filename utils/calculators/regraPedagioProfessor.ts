@@ -13,7 +13,7 @@ export const avaliarRegraPedagioProfessor = (
   
   // Se não for professor, exibe informação e encerra
   if (!isProfessor) {
-    const msgNaoSeAplica = "Essa regra somente se aplica apenas a Professores.";
+    const msgNaoSeAplica = "Essa regra é exclusiva para Professores.";
     return [
       {
         nome: "Regra 3 - Transição - Pedágio - Especial de Professor - Integral - Com paridade",
