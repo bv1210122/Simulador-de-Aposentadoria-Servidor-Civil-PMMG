@@ -257,6 +257,37 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
         </div>
       </section>
 
+      {/* Seção de Assinaturas - Visível na Impressão */}
+      <div className="mt-16 pb-12 grid grid-cols-1 md:grid-cols-2 gap-12 text-center">
+        <div className="flex flex-col items-center">
+          <div className="w-64 border-t border-slate-400 mt-8 mb-2"></div>
+          <p className="text-[10px] font-bold text-slate-800 uppercase tracking-wider">
+            {data.nome || "Assinatura do Servidor Responsável pela Conferência"}
+          </p>
+          <p className="text-[9px] text-slate-500 uppercase">
+            Servidor - PMMG
+          </p>
+        </div>
+
+        <div className="flex flex-col items-center">
+          <div className="w-64 border-t border-slate-400 mt-8 mb-2"></div>
+          <p className="text-[10px] font-bold text-slate-800 uppercase tracking-wider">
+            Chefe da Seção de Recursos Humanos
+          </p>
+          <p className="text-[9px] text-slate-500 uppercase">
+            Unidade - PMMG
+          </p>
+        </div>
+      </div>
+
+      {/* Rodapé de Autenticidade */}
+      <div className="mt-8 pt-4 border-t border-slate-100 text-center">
+        <p className="text-[8px] text-slate-400 italic">
+          Documento gerado eletronicamente em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')}.
+          A exatidão das informações depende da veracidade dos dados inseridos pelo usuário e dos documentos comprobatórios apresentados.
+        </p>
+      </div>
+
       <div className="no-print border-t border-slate-100 pt-8 flex flex-col items-center gap-4 text-center">
         <p className="text-[10px] text-slate-400 max-w-md font-medium">Este relatório foi gerado eletronicamente e possui caráter informativo.</p>
         <div className="flex gap-4">
@@ -265,6 +296,7 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
           </button>
         </div>
       </div>
+
     </div>
   );
 };
