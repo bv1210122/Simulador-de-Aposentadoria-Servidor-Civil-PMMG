@@ -41,8 +41,9 @@ export const apurarTemposBasicos = (data: FormState): TemposBasicosResultado => 
 
   // 2. Tempo de Casa: Tempo efetivo como servidor civil na PMMG
   const tempoServicoPMMGDias = diffInDays(dInc, dSim);
-  const tempoServicoPMMGInfo = diffInDays(dInc, dSim);
-
+  //const tempoServicoPMMGInfo = diffInDays(dInc, dSim);
+  const tempoServicoPMMGInfo = calculateCalendarPeriod(dInc, dSim);
+  
   // 3. Totais Externos (Averbações e Descontos)
   const totalTempoAverbado = data.averbacoes.reduce((acc, av) => acc + (Number(av.anos) * 365) + Number(av.dias), 0);
   const totalAverbadoAnterior = data.averbacoes

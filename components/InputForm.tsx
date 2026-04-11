@@ -507,7 +507,7 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
         <div className="bg-blue-50 border-l-4 border-blue-400 p-3 mb-4 rounded-r-md">
           <div className="flex items-start gap-3">
             <Info className="w-4 h-4 text-blue-500 mt-0.5" />
-            <p className="text-xs text-blue-800 leading-relaxed"><strong>Orientações para o Lançamento:</strong> Para uma simulação precisa, você deve separar em linhas distintas o tempo averbado adquirido <strong>anteriormente a 15/09/2020</strong> do tempo adquirido após essa data.</p>
+            <p className="text-xs text-blue-800 leading-relaxed"><strong>Orientações para o Lançamento:</strong> Ao preencher este campo o Usuário entende a necessidade de conferir a veracidade e exatidão dos atos de averbação de tempo de serviço, bem como as Certidões de Tempo de Contribuição que os originaram. Para uma simulação precisa, você deve separar em linhas distintas o tempo averbado adquirido <strong>anteriormente a 15/09/2020</strong> do tempo adquirido após essa data.</p>
           </div>
         </div>
         <div className="overflow-x-auto border rounded-lg shadow-sm bg-gray-50 mb-3">
