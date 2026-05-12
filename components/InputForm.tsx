@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FormState, Averbação, Desconto, FeriasPremio, TipoServidor, Sexo } from '../types';
+import { FormState, Averbação, Desconto, FeriasPremio, TipoServidor, Sexo, DescontoEleitoral, TipoAfastamentoEleitoral } from '../types';
 import { Plus, Trash2, Calendar, User, Briefcase, CheckCircle2, MinusCircle, Calculator, Info, History, Star, Timer, FileSearch, Award, AlertCircle, Scale, Target, GraduationCap, X, FileCheck } from 'lucide-react';
 import { parseISO, formatDaysToYMD, diffInDays, calculateCalendarPeriod, formatDateBR } from '../utils/calculoDatas';
 import { apurarTemposBasicos } from '../utils/calculators/temposBasicos';
@@ -159,8 +159,8 @@ const TechnicalAuditModal: React.FC<{ isOpen: boolean, onClose: () => void, prev
   if (formData.tipoServidor === 'PEBPM') {
     rows.push({
       nome: "Tempo de Regência",
-      formula: "RegênciaAverbada + TempoServiçoPMMG",
-      detalhamento: `Averbado: ${previewData.tempos.tempoRegenciaAverbadoAnos} anos. PMMG: ${previewData.tempos.tempoServicoPMMGAnos} anos. Total: ${previewData.tempos.tempoRegenciaTotalAnos} anos.`,
+      formula: "RegênciaAverbada + TempoServiçoPMMG - Descontos Afastamento Eleitoral ",
+      detalhamento: `Averbado: ${previewData.tempos.tempoRegenciaAverbadoAnos} anos + PMMG: ${previewData.tempos.tempoServicoPMMGAnos} anos - Afastamento Eleitoral: ${previewData.tempos.tempoDescontoEleitoral} anos. Total: ${previewData.tempos.tempoRegenciaTotalAnos} anos.`,
       obs: "Critério de tempo de sala de aula específico para a carreira PEBPM."
     });
   }
@@ -183,7 +183,7 @@ const TechnicalAuditModal: React.FC<{ isOpen: boolean, onClose: () => void, prev
             <Info className="w-5 h-5 text-blue-600 mt-0.5" />
             <p className="text-sm text-blue-900 leading-relaxed">
               Esta tabela apresenta a rastreabilidade completa das fórmulas aplicadas e os valores extraídos dos dados informados. 
-              As regras seguem rigorosamente a legislação vigente e a metodologia de contagem da PMMG/SEPLAG.
+              As regras obedecem a legislação vigente e a metodologia de contagem da PMMG/SEPLAG.
             </p>
           </div>
 
@@ -316,8 +316,8 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleListUpdate = <T extends Averbação | Desconto | FeriasPremio>(
-    listKey: 'averbacoes' | 'descontos' | 'feriasPremio',
+  const handleListUpdate = <T extends Averbação | Desconto | FeriasPremio | DescontoEleitoral>(
+    listKey: 'averbacoes' | 'descontos' | 'feriasPremio' | 'descontosEleitorais',
     id: string,
     field: keyof T,
     value: any
@@ -366,6 +366,17 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
     setFormData(prev => ({ ...prev, feriasPremio: prev.feriasPremio.filter(f => f.id !== id) }));
   };
 
+  const addDescontoEleitoral = () => {
+    setFormData(prev => ({
+      ...prev,
+      descontosEleitorais: [...(prev.descontosEleitorais ?? []), { id: crypto.randomUUID(), tipo: '', dias: 0 }]
+    }));
+  };
+
+  const removeDescontoEleitoral = (id: string) => {
+    setFormData(prev => ({ ...prev, descontosEleitorais: (prev.descontosEleitorais ?? []).filter(d => d.id !== id) }));
+  };
+
   const totalAverbadoAnt = formData.averbacoes.filter(av => av.anteriorReforma).reduce((acc, av) => acc + (Number(av.anos) * 365) + Number(av.dias), 0);
   const totalAverbadoPos = formData.averbacoes.filter(av => !av.anteriorReforma).reduce((acc, av) => acc + (Number(av.anos) * 365) + Number(av.dias), 0);
   const totalAverbadoGeral = totalAverbadoAnt + totalAverbadoPos;
@@ -383,6 +394,14 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
 
   const totalFeriasPremioSimples = formData.feriasPremio.reduce((acc, fp) => acc + fp.dias, 0);
   const totalFeriasPremioDobro = totalFeriasPremioSimples * 2;
+
+  const totalEleitoralCampanha = (formData.descontosEleitorais ?? [])
+    .filter(d => d.tipo === 'Afastamento para campanha eleitoral')
+    .reduce((acc, d) => acc + Number(d.dias), 0);
+  const totalEleitoralMandato = (formData.descontosEleitorais ?? [])
+    .filter(d => d.tipo === 'Afastamento para mandato eletivo')
+    .reduce((acc, d) => acc + Number(d.dias), 0);
+  const totalEleitoral = totalEleitoralCampanha + totalEleitoralMandato;
 
   const canPreview = formData.dataSimulacao && formData.dataNascimento && formData.dataInclusaoPMMG && formData.sexo && formData.tipoServidor;
 
@@ -613,6 +632,94 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
         <div className="flex justify-end"><button onClick={addDesconto} className="bg-white border border-red-200 text-red-600 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold hover:bg-red-50 shadow-sm"><Plus className="w-4 h-4" /> Adicionar Desconto</button></div>
       </section>
 
+    {/* DESCONTO: AFASTAMENTO ELEITORAL */}
+      <section>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className={sectionTitleClass}>
+            <MinusCircle className="w-5 h-5 text-orange-600" /> Desconto – Afastamento Eleitoral
+          </h2>
+        </div>
+        <div className="bg-orange-50 border-l-4 border-orange-400 p-3 mb-4 rounded-r-md">
+          <div className="flex items-start gap-3">
+            <Info className="w-4 h-4 text-orange-500 mt-0.5" />
+            <p className="text-xs text-orange-800 leading-relaxed">
+              <strong>Orientação:</strong> Informe os períodos de afastamento para serviço eleitoral. Este tempo será deduzido
+              exclusivamente do <strong>Tempo de Regência</strong> do professor (PEBPM), conforme legislação vigente.
+              Para demais servidores, não é necessário preencher este campo.
+            </p>
+          </div>
+        </div>
+        <div className="overflow-x-auto border rounded-lg shadow-sm bg-gray-50 mb-3">
+          <table className="w-full text-sm text-left text-gray-500">
+            <thead className="text-[10px] text-gray-700 uppercase bg-gray-100 border-b font-bold tracking-wider">
+              <tr>
+                <th className="px-3 py-3 w-3/5">Tipo de Afastamento Eleitoral</th>
+                <th className="px-3 py-3 w-1/5 text-center">Dias</th>
+                <th className="px-3 py-3 w-10"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {(formData.descontosEleitorais ?? []).map((desc) => (
+                <tr key={desc.id} className="bg-white hover:bg-gray-50">
+                  <td className="p-2">
+                    <select
+                      value={desc.tipo}
+                      onChange={e => handleListUpdate<DescontoEleitoral>('descontosEleitorais', desc.id, 'tipo', e.target.value as TipoAfastamentoEleitoral)}
+                      className="w-full text-xs border-gray-200 rounded p-2"
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="Afastamento para campanha eleitoral">Afastamento para campanha eleitoral</option>
+                      <option value="Afastamento para mandato eletivo">Afastamento para mandato eletivo</option>
+                    </select>
+                  </td>
+                  <td className="p-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={desc.dias}
+                      onChange={e => handleListUpdate<DescontoEleitoral>('descontosEleitorais', desc.id, 'dias', Number(e.target.value))}
+                      className="w-full text-center text-xs border-gray-200 rounded p-2 font-bold text-orange-600"
+                    />
+                  </td>
+                  <td className="p-2 text-center">
+                    <button onClick={() => removeDescontoEleitoral(desc.id)} className="text-red-400 hover:text-red-600">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {(formData.descontosEleitorais ?? []).length === 0 && (
+                <tr><td colSpan={3} className="p-4 text-center text-gray-400 text-xs italic">Nenhum afastamento eleitoral adicionado.</td></tr>
+              )}
+            </tbody>
+            {(formData.descontosEleitorais ?? []).length > 0 && (
+              <tfoot className="bg-orange-50 font-bold text-[10px]">
+                <tr>
+                  <td className="p-2 text-orange-800 uppercase">Campanha Eleitoral</td>
+                  <td className="p-2 text-center text-orange-700">{totalEleitoralCampanha} dias</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td className="p-2 text-orange-800 uppercase">Mandato Eletivo</td>
+                  <td className="p-2 text-center text-orange-700">{totalEleitoralMandato} dias</td>
+                  <td></td>
+                </tr>
+                <tr className="border-t border-orange-100">
+                  <td className="p-2 text-orange-900 uppercase bg-orange-100/50">Total Geral Eleitoral</td>
+                  <td className="p-2 text-center text-orange-800 bg-orange-100/50">{totalEleitoral} dias</td>
+                  <td className="bg-orange-100/50"></td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+        <div className="flex justify-end">
+          <button onClick={addDescontoEleitoral} className="bg-white border border-orange-200 text-orange-600 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold hover:bg-orange-50 shadow-sm">
+            <Plus className="w-4 h-4" /> Adicionar Afastamento Eleitoral
+          </button>
+        </div>
+      </section>
+
       <section>
         <div className="flex justify-between items-center mb-4"><h2 className={sectionTitleClass}><Award className="w-5 h-5 text-amber-600" /> Férias-Prêmio</h2></div>
 
@@ -690,7 +797,7 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
               {formData.tipoServidor === 'PEBPM' && (
                 <div className="bg-amber-50 px-3 py-1.5 text-[9px] font-bold text-amber-800 border-t border-amber-100 flex items-center gap-2">
                   <GraduationCap className="w-3 h-3" />
-                  Regência Total: {preview.tempos.tempoRegenciaTotalAnos} anos (Averb: {preview.tempos.tempoRegenciaAverbadoAnos} anos + PMMG: {preview.tempos.tempoServicoPMMGAnos} anos)
+                  Regência Total: {preview.tempos.tempoRegenciaTotalAnos} anos (Averb: {preview.tempos.tempoRegenciaAverbadoAnos} anos + PMMG: {preview.tempos.tempoServicoPMMGAnos} anos - Afastamento Eleitoral: {preview.tempos.tempoDescontoEleitoral} anos)
                 </div>
               )}
             </PreviewBox>
@@ -740,6 +847,15 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
         <button onClick={onCalculate} className="w-full bg-blue-800 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-900 transition-all shadow-lg active:scale-[0.98]">
           Gerar Simulação
         </button>
+        
+        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded-r-md">
+          <div className="flex items-start gap-3">
+            <Info className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-amber-500 leading-relaxed">
+              ATENÇÃO: SALVE SUA PRÉVIA EM PDF: O sistema de prévia de aposentadoria não possui banco de dados para armazenamento das informações inseridas. Por esse motivo, os lançamentos e calculos realizados nesta sessão não ficarão registrados após o encerramento do acesso. Para garantir que você não perca seus dados, é fundamental que você salve o relatório da sua prévia em arquivo PDF antes de sair da página. 
+            </p>
+          </div>
+        </div>
       </div>
 
       <TechnicalAuditModal 

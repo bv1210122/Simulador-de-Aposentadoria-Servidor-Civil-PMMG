@@ -26,6 +26,14 @@ export interface FeriasPremio {
   dias: number;
 }
 
+export type TipoAfastamentoEleitoral = 'Afastamento para campanha eleitoral' | 'Afastamento para mandato eletivo';
+
+export interface DescontoEleitoral {
+  id: string;
+  tipo: TipoAfastamentoEleitoral | '';
+  dias: number;
+}
+
 export interface FormState {
   tipoServidor: TipoServidor | '';
   sexo: Sexo | '';
@@ -41,6 +49,7 @@ export interface FormState {
   cincoAnosCargoEfetivo: boolean;
   tempoEfetivo15092020: number; // Campo adicionado para persistência se necessário
   TempoDeRegência: number;
+  descontosEleitorais: DescontoEleitoral[]; // Lista de afastamentos eleitorais
 }
 
 export interface Requisito {

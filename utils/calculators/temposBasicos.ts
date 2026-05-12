@@ -12,6 +12,7 @@ export interface TemposBasicosResultado {
   tempoServicoPMMGDias: number;
   tempoServicoPMMGAnos: number;
   tempoServicoPMMGFormatado: string;
+  tempoDescontoEleitoral: number;
   totalTempoAverbado: number;
   totalAverbadoAnterior: number;
   totalTempoDescontado: number;
@@ -69,7 +70,17 @@ export const apurarTemposBasicos = (data: FormState): TemposBasicosResultado => 
   const tempoContribAnos = Math.floor(tempoContribTotal / 365);
 
   // Cálculo final da Regência: Averbado + PMMG
-  const tempoRegenciaTotalAnos = Math.floor(tempoRegenciaAverbadoAnos + tempoServicoPMMGInfo.anos + (tempoServicoPMMGInfo.dias / 365));
+  //const tempoRegenciaTotalAnos = Math.floor(tempoRegenciaAverbadoAnos + tempoServicoPMMGInfo.anos + (tempoServicoPMMGInfo.dias / 365));
+  // Desconto de Serviço Eleitoral (deduzido exclusivamente do Tempo de Regência)
+  const descontoEleitoralDias = (data.descontosEleitorais ?? []).reduce((acc, d) => acc + Number(d.dias), 0);
+  const descontoEleitoralAnos = descontoEleitoralDias / 365;
+  const tempoDescontoEleitoral =  Math.floor(descontoEleitoralAnos);
+
+
+  // Cálculo final da Regência: Averbado + PMMG - Desconto Eleitoral
+  const tempoRegenciaTotalAnos = Math.floor(
+    tempoRegenciaAverbadoAnos + tempoServicoPMMGInfo.anos + (tempoServicoPMMGInfo.dias / 365) - descontoEleitoralAnos
+  );
 
   return {
     idadeDias: idadeInfo.totalDias,
@@ -78,6 +89,7 @@ export const apurarTemposBasicos = (data: FormState): TemposBasicosResultado => 
     tempoServicoPMMGDias: tempoServicoPMMGDias,
     tempoServicoPMMGAnos: tempoServicoPMMGInfo.anos,
     tempoServicoPMMGFormatado: tempoServicoPMMGInfo.formatada,
+    tempoDescontoEleitoral,
     totalTempoAverbado,
     totalAverbadoAnterior,
     totalTempoDescontado,

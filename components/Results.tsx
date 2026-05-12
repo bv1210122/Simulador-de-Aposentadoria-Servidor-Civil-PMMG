@@ -125,7 +125,7 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
             {data.tipoServidor === 'PEBPM' ? (
               <div className="bg-amber-50 px-4 py-2 text-[10px] border-t border-amber-100 flex items-center justify-between">
                 <span className="text-amber-800 font-bold uppercase flex items-center gap-1"><GraduationCap className="w-3 h-3" /> Tempo Total de Regência</span>
-                <span className="text-amber-900 font-black">{calc.tempoRegenciaTotalAnos} anos</span>
+                <span className="text-amber-900 font-black">{calc.tempoRegenciaTotalAnos} anos (Regência Averbada + Tempo Serviço PMMG - Afastamento Eleitoral)</span>
               </div>
             ) : (
               <div className="bg-slate-50 px-4 py-2 text-[10px] border-t border-slate-200 flex items-center justify-between italic">
@@ -224,11 +224,11 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-100/50 text-slate-500">
                 <tr>
-                  <th className="px-4 py-2 border-b">Origem / Função</th>
-                  <th className="px-4 py-2 border-b">Regime</th>
-                  <th className="px-4 py-2 border-b text-center">Tempo (A/D)</th>
-                  <th className="px-4 py-2 border-b text-center">Regência</th>
-                  <th className="px-4 py-2 border-b text-center">Ant. Reforma</th>
+                  <th className="px-4 py-2">Origem / Função</th>
+                  <th className="px-4 py-2">Regime</th>
+                  <th className="px-4 py-2 text-center">Tempo (A/D)</th>
+                  <th className="px-4 py-2 text-center">Regência</th>
+                  <th className="px-4 py-2 text-center">Ant. Reforma</th>
                 </tr>
               </thead>
               <tbody>
@@ -238,12 +238,12 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
                       <div className="font-semibold text-slate-800">{av.origem || "-"}</div>
                       <div className="text-[10px] text-slate-400">{av.funcao || "Não informada"}</div>
                     </td>
-                    <td className="px-4 py-3 border-b">{av.regime || "-"}</td>
-                    <td className="px-4 py-3 border-b text-center font-mono font-bold text-blue-700">
+                    <td className="px-4 py-3">{av.regime || "-"}</td>
+                    <td className="px-4 py-3 text-center font-mono font-bold text-blue-700">
                       {av.anos}a {av.dias}d
                     </td>
-                    <td className="px-4 py-3 border-b text-center">{av.isRegencia ? "✅" : "❌"}</td>
-                    <td className="px-4 py-3 border-b text-center">{av.anteriorReforma ? "Sim" : "Não"}</td>
+                    <td className="px-4 py-3 text-center">{av.isRegencia ? "✅" : "❌"}</td>
+                    <td className="px-4 py-3 text-center">{av.anteriorReforma ? "Sim" : "Não"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -283,6 +283,33 @@ const Results: React.FC<Props> = ({ data, calc, regras }) => {
         )}
       </div> 
       
+      <div className="space-y-6">
+        {/* Tabela de Descontos Afastamento Eleitoral*/}
+        {data.descontosEleitorais?.length > 0 && (
+          <section className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 font-bold text-xs uppercase text-slate-700">
+              Descontos Afastamento Eleitoral (Descontado apenas do tempo de Regência - PEBPM)
+            </div>
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="bg-slate-50 text-[9px] uppercase text-slate-400">
+                  <th className="px-3 py-3 w-3/5">Tipo de Afastamento Eleitoral</th>
+                <th className="px-3 py-3 w-1/5 text-center">Dias</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.descontosEleitorais.map((d) => (
+                  <tr key={d.id} className="border-t border-slate-100">
+                    <td className="px-4 py-2">{d.tipo || "Afastamento Eleitoral"}</td>
+                    <td className="px-4 py-2 text-center font-bold text-red-600">-{d.dias}</td>                   
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
+      </div>             
+
       <div className="space-y-6">
         {/* Tabela de Férias Prêmio */}
         {data.feriasPremio?.length > 0 && (
