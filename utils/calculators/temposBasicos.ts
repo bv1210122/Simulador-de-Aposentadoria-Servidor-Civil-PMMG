@@ -76,7 +76,6 @@ export const apurarTemposBasicos = (data: FormState): TemposBasicosResultado => 
   const descontoEleitoralAnos = descontoEleitoralDias / 365;
   const tempoDescontoEleitoral =  Math.floor(descontoEleitoralAnos);
 
-
   // Cálculo final da Regência: Averbado + PMMG - Desconto Eleitoral
   const tempoRegenciaTotalAnos = Math.floor(
     tempoRegenciaAverbadoAnos + tempoServicoPMMGInfo.anos + (tempoServicoPMMGInfo.dias / 365) - descontoEleitoralAnos
