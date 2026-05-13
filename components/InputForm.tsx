@@ -463,11 +463,6 @@ const InputForm: React.FC<Props> = ({ formData, setFormData, onCalculate }) => {
     };
 
 
-
-
-
-
-
   return (
     <div className="space-y-8 bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-100 no-print">
       <FormSection title="Dados Identificadores" icon={<User className="w-5 h-5" />}>
